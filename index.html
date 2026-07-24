@@ -229,6 +229,23 @@
         }
         .achieve-grid .done { color: #4caf50; }
         .achieve-grid .not-done { color: #555; }
+        #resetBtn {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            background: rgba(255,0,0,0.25);
+            border: 1px solid rgba(255,0,0,0.4);
+            color: #ff6b6b;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 15;
+            transition: 0.2s;
+            letter-spacing: 0.5px;
+        }
+        #resetBtn:active { transform: scale(0.92); background: rgba(255,0,0,0.4); }
     </style>
 </head>
 <body>
@@ -236,6 +253,7 @@
 <canvas id="gameCanvas" width="600" height="800"></canvas>
 
 <div id="menu">
+    <button id="resetBtn">🗑️ Сброс</button>
     <h1>⚽ MATCH CUP</h1>
     <div class="sub">Шаг 1: Выбери игрока</div>
     <div class="players">
@@ -387,6 +405,22 @@
         }, 3000);
     }
 
+    // ----- СБРОС ПРОГРЕССА -----
+    function resetProgress() {
+        if (confirm('Уверен? Весь прогресс будет удалён навсегда!')) {
+            localStorage.removeItem('matchcup_save');
+            save = { wins: 0, goals: 0, stars: 1, achievements: {} };
+            Object.keys(ACHIEVEMENTS).forEach(k => ACHIEVEMENTS[k] = false);
+            updateAchievementUI();
+            // Обновляем карточки игроков
+            document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById('startBtn').disabled = true;
+            document.querySelectorAll('.diff-btn').forEach(b => b.disabled = true);
+            selectedPlayer = -1;
+            alert('Прогресс полностью сброшен!');
+        }
+    }
+
     // ----- ИГРОКИ -----
     const PLAYER_DATA = [
         { name: 'Хабиб', color: '#d32f2f', team: 'A' },
@@ -417,21 +451,29 @@
     let teamA = [], teamB = [], allPlayers = [];
 
     function initPlayers() {
-        const starBonus = 1 + (save.stars - 1) * 0.15;
+        const playerStars = save.stars || 1;
         const botStars = diffStars[selectedDifficulty] || 2;
         const botSpeed = diffSpeed[selectedDifficulty] || 1.0;
         const botPower = diffPower[selectedDifficulty] || 2.5;
         const botBonus = 1 + (botStars - 1) * 0.12;
+        const playerBonus = 1 + (playerStars - 1) * 0.15;
+
+        // Хабиб — полевой (всегда)
+        // Салаудин — вратарь (всегда)
+        // Шамиль Рб — полевой (всегда)
+        // Шамиль Jr — вратарь (всегда)
 
         teamA = [
-            { id: 0, name: 'Хабиб', color: '#d32f2f', x: 200, y: 400, r: 22, isPlayer: false, team: 'A', targetX: 200, targetY: 400, isGoalkeeper: false, speed: 1.6 * starBonus, power: 3.5 * starBonus },
-            { id: 1, name: 'Салаудин', color: '#e57373', x: 60, y: 400, r: 22, isPlayer: false, team: 'A', targetX: 60, targetY: 400, isGoalkeeper: true, speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus }
+            { id: 0, name: 'Хабиб', color: '#d32f2f', x: 200, y: 400, r: 22, isPlayer: false, team: 'A', isGoalkeeper: false, speed: 1.6 * (selectedPlayer === 0 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 0 ? playerBonus : botBonus) },
+            { id: 1, name: 'Салаудин', color: '#e57373', x: 60, y: 400, r: 22, isPlayer: false, team: 'A', isGoalkeeper: true, speed: 1.6 * (selectedPlayer === 1 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 1 ? playerBonus : botBonus) }
         ];
         teamB = [
-            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 400, y: 400, r: 22, isPlayer: false, team: 'B', targetX: 400, targetY: 400, isGoalkeeper: false, speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus },
-            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: W-60, y: 400, r: 22, isPlayer: false, team: 'B', targetX: W-60, targetY: 400, isGoalkeeper: true, speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus }
+            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 400, y: 400, r: 22, isPlayer: false, team: 'B', isGoalkeeper: false, speed: 1.6 * (selectedPlayer === 2 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 2 ? playerBonus : botBonus) },
+            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: W-60, y: 400, r: 22, isPlayer: false, team: 'B', isGoalkeeper: true, speed: 1.6 * (selectedPlayer === 3 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 3 ? playerBonus : botBonus) }
         ];
+
         allPlayers = [...teamA, ...teamB];
+        // Помечаем выбранного игрока
         if (selectedPlayer >= 0) {
             let p = null;
             if (selectedPlayer < 2) p = teamA[selectedPlayer];
@@ -439,6 +481,19 @@
             if (p) {
                 p.isPlayer = true;
                 p.color = '#ffd700';
+                // Если выбрали вратаря — делаем его полевым
+                if (p.isGoalkeeper) {
+                    p.isGoalkeeper = false;
+                    p.x = 200 + (p.team === 'A' ? 0 : 200);
+                    p.y = 400;
+                }
+                // Напарник идёт в ворота
+                const teammate = allPlayers.find(pl => pl.team === p.team && pl.id !== p.id);
+                if (teammate) {
+                    teammate.isGoalkeeper = true;
+                    teammate.x = (p.team === 'A') ? 60 : W-60;
+                    teammate.y = H/2;
+                }
             }
         }
         allPlayers.forEach(p => {
@@ -584,18 +639,20 @@
 
         if (p.isGoalkeeper) {
             // Вратарь: только у своих ворот
+            const goal = isTeamA ? goalA : goalB;
             const goalX = isTeamA ? 30 : W-30;
             const goalYCenter = H/2;
-            // Следим за мячом по вертикали, но не отходим от ворот
-            if (distToBall < 400) {
-                targetX = goalX;
-                targetY = Math.max(goalA.y + 20, Math.min(goalA.y + goalA.h - 20, ball.y));
+            // Если мяч близко к воротам — выходит на 2–3 метра
+            if (distToBall < 200 && ball.x > goal.x - 50 && ball.x < goal.x + goal.w + 50) {
+                const offset = 40 + Math.random() * 20;
+                targetX = isTeamA ? goal.x + goal.w + offset : goal.x - offset;
+                targetY = Math.max(goal.y + 15, Math.min(goal.y + goal.h - 15, ball.y));
             } else {
                 targetX = goalX;
-                targetY = goalYCenter + (Math.random()-0.5)*60;
+                targetY = goalYCenter + (Math.random()-0.5)*40;
             }
         } else {
-            // Полевые игроки (Хабиб и Шамиль Рб) — бегают за мячом по всему полю
+            // Полевые игроки (Хабиб и Шамиль Рб) — бегают за мячом
             if (distToBall < 250 && Math.random() < 0.03) {
                 targetX = ball.x + (Math.random()-0.5) * 100;
                 targetY = ball.y + (Math.random()-0.5) * 100;
@@ -635,7 +692,7 @@
         // Границы для вратарей
         if (p.isGoalkeeper) {
             const goal = isTeamA ? goalA : goalB;
-            p.x = Math.max(goal.x - 10, Math.min(goal.x + goal.w + 10, p.x));
+            p.x = Math.max(goal.x - 40, Math.min(goal.x + goal.w + 40, p.x));
             p.y = Math.max(goal.y + 10, Math.min(goal.y + goal.h - 10, p.y));
         } else {
             p.x = Math.max(25, Math.min(W-25, p.x));
@@ -643,7 +700,7 @@
         }
     }
 
-    // ----- ОБНОВЛЕНИЕ -----
+    // ----- ОБНОВЛЕНИЕ (резкое управление) -----
     function update() {
         if (gameState !== 'playing' || !matchActive || matchEnded) return;
 
@@ -653,10 +710,12 @@
             const dx = touchX - myPlayer.x;
             const dy = touchY - myPlayer.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist > 3) {
-                const speed = 5.2 * speedBonus;
-                myPlayer.x += (dx / dist) * speed;
-                myPlayer.y += (dy / dist) * speed;
+            if (dist > 5) {
+                // РЕЗКОЕ движение (без плавности)
+                const speed = 8 * speedBonus;
+                const angle = Math.atan2(dy, dx);
+                myPlayer.x += Math.cos(angle) * speed;
+                myPlayer.y += Math.sin(angle) * speed;
             }
         }
         allPlayers.forEach(p => {
@@ -680,7 +739,7 @@
                 const overlap = (ball.r + p.r - dist) * 0.5;
                 ball.x += Math.cos(angle) * overlap;
                 ball.y += Math.sin(angle) * overlap;
-                const power = p.isPlayer ? 3.5 * speedBonus : 3.5;
+                const power = p.isPlayer ? 4.0 * speedBonus : 3.5;
                 const force = power + Math.random()*2;
                 ball.vx += Math.cos(angle) * force;
                 ball.vy += Math.sin(angle) * force;
@@ -817,6 +876,9 @@
         resetBall();
         startMatch();
     });
+
+    // Кнопка сброса
+    document.getElementById('resetBtn').addEventListener('click', resetProgress);
 
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
