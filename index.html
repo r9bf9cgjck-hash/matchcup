@@ -178,7 +178,7 @@
         #winner .cup { font-size: 4rem; display: block; }
         #restartBtn {
             position: absolute;
-            bottom: 40px;
+            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
             background: #f7971e;
@@ -194,6 +194,24 @@
             cursor: pointer;
         }
         #restartBtn:active { transform: translateX(-50%) scale(0.94); }
+        #menuBtn {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: #fff;
+            font-weight: bold;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-size: 1rem;
+            z-index: 30;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            display: none;
+            cursor: pointer;
+        }
+        #menuBtn:active { transform: translateX(-50%) scale(0.94); }
         #matchScore {
             position: absolute;
             bottom: 120px;
@@ -262,7 +280,7 @@
             border: 3px solid rgba(255,255,255,0.25);
             z-index: 8;
             display: none;
-            pointer-events: none;
+            touch-action: none;
         }
         #joystick-knob {
             position: absolute;
@@ -279,14 +297,14 @@
         #kick-btn {
             position: absolute;
             bottom: 30px;
-            right: 20px;
-            width: 80px;
-            height: 80px;
-            border-radius: 40px;
+            right: 100px;
+            width: 70px;
+            height: 70px;
+            border-radius: 35px;
             background: rgba(255,215,0,0.25);
             border: 4px solid rgba(255,215,0,0.5);
             color: white;
-            font-size: 1rem;
+            font-size: 0.7rem;
             font-weight: bold;
             z-index: 8;
             display: none;
@@ -296,12 +314,40 @@
             user-select: none;
             transition: 0.1s;
             box-shadow: 0 0 30px rgba(255,215,0,0.15);
-            pointer-events: none;
+            touch-action: none;
             text-align: center;
             line-height: 1.2;
         }
         #kick-btn.active {
             background: rgba(255,215,0,0.5);
+            transform: scale(0.92);
+        }
+        #tackle-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            width: 70px;
+            height: 70px;
+            border-radius: 35px;
+            background: rgba(0,100,255,0.25);
+            border: 4px solid rgba(0,100,255,0.5);
+            color: white;
+            font-size: 0.6rem;
+            font-weight: bold;
+            z-index: 8;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            user-select: none;
+            transition: 0.1s;
+            box-shadow: 0 0 30px rgba(0,100,255,0.15);
+            touch-action: none;
+            text-align: center;
+            line-height: 1.2;
+        }
+        #tackle-btn.active {
+            background: rgba(0,100,255,0.5);
             transform: scale(0.92);
         }
         .hidden { display: none !important; }
@@ -349,9 +395,11 @@
     <div id="achievement">🏅 ДОСТИЖЕНИЕ!</div>
     <div id="winner"><span class="cup">🏆</span>ПОБЕДА!</div>
     <button id="restartBtn">🔁 Играть снова</button>
+    <button id="menuBtn">🏠 В меню</button>
 
     <div id="joystick-area"><div id="joystick-knob"></div></div>
-    <div id="kick-btn">Удар</div>
+    <div id="kick-btn">⚽<br>Удар</div>
+    <div id="tackle-btn">⚔️<br>Отбор</div>
 </div>
 
 <script>
@@ -364,6 +412,9 @@
     const joystickArea = document.getElementById('joystick-area');
     const joystickKnob = document.getElementById('joystick-knob');
     const kickBtn = document.getElementById('kick-btn');
+    const tackleBtn = document.getElementById('tackle-btn');
+    const restartBtn = document.getElementById('restartBtn');
+    const menuBtn = document.getElementById('menuBtn');
 
     // ----- СОХРАНЕНИЕ -----
     function loadSave() {
@@ -387,6 +438,7 @@
     let diffStars = { easy: 2, medium: 3, hard: 4, extreme: 5 };
     let diffSpeed = { easy: 1.0, medium: 1.4, hard: 1.8, extreme: 2.3 };
     let diffPower = { easy: 2.5, medium: 3.5, hard: 4.5, extreme: 5.5 };
+    let diffTackle = { easy: 0.2, medium: 0.4, hard: 0.6, extreme: 0.8 };
 
     // Достижения
     const ACHIEVEMENTS = {
@@ -491,7 +543,7 @@
     // ----- ДЖОЙСТИК -----
     let joystickX = 0, joystickY = 0;
     let joystickActive = false;
-    let touchId = null;
+    let joystickTouchId = null;
 
     // ----- СОСТОЯНИЕ ИГРЫ -----
     let gameState = 'menu';
@@ -504,24 +556,22 @@
     let timerInterval = null;
     let matchEnded = false;
     let pendingPenalty = false;
-    let penaltyPhase = 0; // 0 - не активна, 1 - выбор угла, 2 - удар
+    let penaltyPhase = 0;
     let penaltyShotsA = 0, penaltyShotsB = 0;
     let penaltyGoalsA = 0, penaltyGoalsB = 0;
     let penaltyTotal = 3;
-    let penaltyShooter = 'A'; // A или B
-    let penaltyAngle = 0;
-    let penaltyResult = null;
+    let penaltyShooter = 'A';
 
     let ball = { x: W/2, y: H/2, r: 11, vx: 0, vy: 0 };
+    let ballOwner = null;
 
-    // Ворота (внутри поля, короткие)
+    // Ворота
     const GOAL_HEIGHT = 60;
-    const goalA = { x: 25, y: H/2 - GOAL_HEIGHT/2, w: 20, h: GOAL_HEIGHT };
-    const goalB = { x: W-45, y: H/2 - GOAL_HEIGHT/2, w: 20, h: GOAL_HEIGHT };
+    const goalA = { x: 25, y: H/2 - GOAL_HEIGHT/2, w: 18, h: GOAL_HEIGHT };
+    const goalB = { x: W-43, y: H/2 - GOAL_HEIGHT/2, w: 18, h: GOAL_HEIGHT };
 
-    let touchX = W/2, touchY = H/2;
-    let isTouching = false;
     let kickPressed = false;
+    let tacklePressed = false;
 
     let teamA = [], teamB = [], allPlayers = [];
 
@@ -551,7 +601,7 @@
         allPlayers = [...teamA, ...teamB];
         allPlayers.forEach(p => {
             if (p.isGoalkeeper && !p.isPlayer) {
-                p.x = (p.team === 'A') ? 60 : W-60;
+                p.x = (p.team === 'A') ? 55 : W-55;
                 p.y = H/2;
             }
             if (p.isPlayer) {
@@ -567,15 +617,16 @@
                 p.targetY = p.y + (Math.random()-0.5)*100;
             }
         });
+        ballOwner = null;
+        resetBall();
     }
 
     function resetBall() {
         ball.x = W/2 + (Math.random()*80-40);
         ball.y = H/2 + (Math.random()*80-40);
-        ball.vx = (Math.random()*6-3);
-        ball.vy = (Math.random()*6-3);
-        if (Math.abs(ball.vx) < 0.5) ball.vx = (Math.random() > 0.5 ? 2 : -2);
-        if (Math.abs(ball.vy) < 0.5) ball.vy = (Math.random() > 0.5 ? 2 : -2);
+        ball.vx = 0;
+        ball.vy = 0;
+        ballOwner = null;
     }
 
     function startMatch() {
@@ -586,7 +637,8 @@
         timeLeft = MATCH_TIME;
         document.getElementById('timer').innerText = '⏱️ 1:00';
         document.getElementById('winner').style.display = 'none';
-        document.getElementById('restartBtn').style.display = 'none';
+        restartBtn.style.display = 'none';
+        menuBtn.style.display = 'none';
         scoreTeamA = 0;
         scoreTeamB = 0;
         updateScoreDisplay();
@@ -605,6 +657,19 @@
         }, 1000);
     }
 
+    function endMatch() {
+        matchActive = false;
+        matchEnded = true;
+        let winner = null;
+        if (scoreTeamA > scoreTeamB) { winner = 'A'; winsA++; }
+        else if (scoreTeamB > scoreTeamA) { winner = 'B'; winsB++; }
+        else { 
+            startPenalty();
+            return;
+        }
+        finishMatch(winner);
+    }
+
     function startPenalty() {
         pendingPenalty = true;
         penaltyPhase = 1;
@@ -613,24 +678,8 @@
         penaltyGoalsA = 0;
         penaltyGoalsB = 0;
         penaltyShooter = 'A';
-        penaltyResult = null;
         document.getElementById('matchScore').innerText = '⚽ ПЕНАЛЬТИ! 0:0';
-        // Показываем уведомление
         showAchievement('⚽ ПЕНАЛЬТИ! Бей!');
-    }
-
-    function endMatch() {
-        matchActive = false;
-        matchEnded = true;
-        let winner = null;
-        if (scoreTeamA > scoreTeamB) { winner = 'A'; winsA++; }
-        else if (scoreTeamB > scoreTeamA) { winner = 'B'; winsB++; }
-        else { 
-            // Ничья -> пенальти
-            startPenalty();
-            return;
-        }
-        finishMatch(winner);
     }
 
     function finishMatch(winner) {
@@ -662,7 +711,8 @@
         } else {
             document.getElementById('winner').innerHTML = `<span class="cup">🏆</span> Победа команды ${winner === 'A' ? 'А' : 'Б'}!<br><span style="font-size:1rem;color:#aaa;">⭐ ${starStr}</span>`;
             document.getElementById('winner').style.display = 'block';
-            document.getElementById('restartBtn').style.display = 'block';
+            restartBtn.style.display = 'block';
+            menuBtn.style.display = 'block';
         }
     }
 
@@ -674,7 +724,8 @@
             <div style="font-size:0.8rem; color:#ffd700;">⭐ ${'⭐'.repeat(save.stars || 1)}</div>
         `;
         document.getElementById('winner').style.display = 'block';
-        document.getElementById('restartBtn').style.display = 'block';
+        restartBtn.style.display = 'block';
+        menuBtn.style.display = 'block';
         winsA = 0;
         winsB = 0;
     }
@@ -714,7 +765,39 @@
         }
     }
 
-    // ----- БОТЫ (с учётом хардкора) -----
+    // ----- ОТБОР -----
+    function performTackle(player) {
+        if (!player) return;
+        // Ищем ближайшего соперника с мячом
+        let target = null;
+        let minDist = 80;
+        for (let p of allPlayers) {
+            if (p === player || p.team === player.team) continue;
+            if (p === ballOwner) {
+                const dx = player.x - p.x;
+                const dy = player.y - p.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < minDist) {
+                    minDist = dist;
+                    target = p;
+                }
+            }
+        }
+        if (target) {
+            // Шанс отбора зависит от рейтинга и сложности
+            const tackleChance = 0.3 + (save.stars || 1) * 0.05 - diffTackle[selectedDifficulty] * 0.2;
+            if (Math.random() < tackleChance) {
+                ballOwner = player;
+                ball.x = player.x + 20;
+                ball.y = player.y;
+                ball.vx = 0;
+                ball.vy = 0;
+                showAchievement('⚔️ Отбор!');
+            }
+        }
+    }
+
+    // ----- БОТЫ (с ведением и отбором) -----
     function updateBot(p, isTeamA) {
         const dx = ball.x - p.x;
         const dy = ball.y - p.y;
@@ -736,39 +819,40 @@
                 targetY = goalYCenter + (Math.random()-0.5)*30;
             }
         } else {
-            // Полевые — атакуют
-            if (distToBall < 250) {
-                targetX = ball.x + (Math.random()-0.5) * 80;
-                targetY = ball.y + (Math.random()-0.5) * 80;
-            } else {
-                targetX = ball.x;
-                targetY = ball.y;
-            }
-            
-            // ХАРДКОР: бьют только в твои ворота
-            let targetGoalX, targetGoalY;
-            if (selectedDifficulty === 'extreme') {
-                // бьют только в твои ворота
-                const myTeam = allPlayers.find(p => p.isPlayer)?.team;
-                if (myTeam === 'A') {
-                    targetGoalX = goalA.x + goalA.w/2;
-                    targetGoalY = goalA.y + goalA.h/2 + (Math.random()-0.5)*40;
-                } else {
-                    targetGoalX = goalB.x + goalB.w/2;
-                    targetGoalY = goalB.y + goalB.h/2 + (Math.random()-0.5)*40;
+            // Если бот владеет мячом — ведёт его к воротам соперника
+            if (p === ballOwner) {
+                const targetGoalX = isTeamA ? W-40 : 20;
+                const targetGoalY = H/2 + (Math.random()-0.5)*60;
+                targetX = targetGoalX;
+                targetY = targetGoalY;
+                // Удар с вероятностью
+                if (Math.random() < 0.02 && distToBall < 40) {
+                    const kx = targetGoalX - ball.x;
+                    const ky = targetGoalY - ball.y;
+                    const kd = Math.sqrt(kx*kx + ky*ky) || 1;
+                    const power = p.power * (selectedDifficulty === 'extreme' ? 1.4 : 1.0);
+                    ball.vx = (kx / kd) * power;
+                    ball.vy = (ky / kd) * power;
+                    ballOwner = null;
+                    return;
                 }
             } else {
-                targetGoalX = isTeamA ? W-40 : 20;
-                targetGoalY = H/2 + (Math.random()-0.5)*80;
-            }
-
-            if (distToBall < 35 && Math.random() < (selectedDifficulty === 'extreme' ? 0.15 : 0.08)) {
-                const kx = targetGoalX - ball.x;
-                const ky = targetGoalY - ball.y;
-                const kd = Math.sqrt(kx*kx + ky*ky) || 1;
-                const power = p.power * (selectedDifficulty === 'extreme' ? 1.4 : 1.0);
-                ball.vx += (kx / kd) * power * (0.8 + Math.random() * 0.4);
-                ball.vy += (ky / kd) * power * (0.8 + Math.random() * 0.4);
+                // Без мяча — бежит к мячу
+                if (distToBall < 250) {
+                    targetX = ball.x + (Math.random()-0.5) * 80;
+                    targetY = ball.y + (Math.random()-0.5) * 80;
+                } else {
+                    targetX = ball.x;
+                    targetY = ball.y;
+                }
+                // Отбор у игрока с мячом
+                if (ballOwner && distToBall < 50 && Math.random() < diffTackle[selectedDifficulty] * 0.5) {
+                    ballOwner = p;
+                    ball.x = p.x + 20;
+                    ball.y = p.y;
+                    ball.vx = 0;
+                    ball.vy = 0;
+                }
             }
         }
 
@@ -782,7 +866,7 @@
             p.x += dxT * move;
             p.y += dyT * move;
         } else {
-            if (!p.isGoalkeeper) {
+            if (!p.isGoalkeeper && p !== ballOwner) {
                 p.targetX = 100 + Math.random() * 400;
                 p.targetY = 100 + Math.random() * 500;
             }
@@ -798,21 +882,15 @@
         }
     }
 
-    // ----- ОБНОВЛЕНИЕ (с джойстиком и ударом) -----
+    // ----- ОБНОВЛЕНИЕ -----
     function update() {
         if (gameState !== 'playing' || matchEnded) return;
         
         if (pendingPenalty) {
-            // Логика пенальти
             if (penaltyPhase === 1) {
-                // Выбор угла
                 if (kickPressed) {
-                    // Удар
                     penaltyPhase = 2;
                     const angle = Math.atan2(joystickY, joystickX);
-                    // Сила удара от рейтинга
-                    const power = 5 + (save.stars || 1) * 1.5;
-                    // Вратарь угадывает (зависит от сложности)
                     const keeperChance = selectedDifficulty === 'easy' ? 0.3 : 
                                         selectedDifficulty === 'medium' ? 0.5 :
                                         selectedDifficulty === 'hard' ? 0.7 : 0.85;
@@ -830,13 +908,11 @@
                     
                     if (penaltyShotsA + penaltyShotsB >= penaltyTotal*2 || 
                         (penaltyShotsA >= penaltyTotal && penaltyShotsB >= penaltyTotal)) {
-                        // Серия окончена
                         if (penaltyGoalsA > penaltyGoalsB) {
                             finishMatch('A');
                         } else if (penaltyGoalsB > penaltyGoalsA) {
                             finishMatch('B');
                         } else {
-                            // Внезапная смерть
                             penaltyTotal = 1;
                             penaltyShotsA = 0;
                             penaltyShotsB = 0;
@@ -850,7 +926,6 @@
                         pendingPenalty = false;
                         return;
                     }
-                    // Смена бьющего
                     penaltyShooter = penaltyShooter === 'A' ? 'B' : 'A';
                     penaltyPhase = 1;
                     kickPressed = false;
@@ -876,6 +951,14 @@
             }
         }
         
+        // Если игрок владеет мячом — мяч следует за ним
+        if (myPlayer && ballOwner === myPlayer) {
+            ball.x = myPlayer.x + 20;
+            ball.y = myPlayer.y;
+            ball.vx = 0;
+            ball.vy = 0;
+        }
+
         allPlayers.forEach(p => {
             if (!p.isGoalkeeper) {
                 p.x = Math.max(35, Math.min(W-35, p.x));
@@ -889,49 +972,43 @@
             updateBot(p, isA);
         });
 
+        // Если бот владеет мячом — мяч следует за ним
+        if (ballOwner && !ballOwner.isPlayer) {
+            ball.x = ballOwner.x + 20;
+            ball.y = ballOwner.y;
+            ball.vx = 0;
+            ball.vy = 0;
+        }
+
         // Удар по мячу
         if (myPlayer && kickPressed && !pendingPenalty) {
-            const dx = ball.x - myPlayer.x;
-            const dy = ball.y - myPlayer.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < 60) {
-                // Направление удара = направление джойстика
+            if (ballOwner === myPlayer) {
                 const angle = Math.atan2(joystickY, joystickX);
                 const power = 4 + (save.stars || 1) * 1.5;
                 ball.vx = Math.cos(angle) * power;
                 ball.vy = Math.sin(angle) * power;
-                // Добавляем случайность для реализма
-                ball.vx += (Math.random()-0.5) * 0.5;
-                ball.vy += (Math.random()-0.5) * 0.5;
+                ballOwner = null;
                 kickPressed = false;
             }
         }
 
-        // Физика мяча
-        for (let p of allPlayers) {
-            const dx = ball.x - p.x;
-            const dy = ball.y - p.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < ball.r + p.r) {
-                const angle = Math.atan2(dy, dx);
-                const overlap = (ball.r + p.r - dist) * 0.5;
-                ball.x += Math.cos(angle) * overlap;
-                ball.y += Math.sin(angle) * overlap;
-                const power = p.isPlayer ? 4.0 * speedBonus : 3.5;
-                const force = power + Math.random()*2;
-                ball.vx += Math.cos(angle) * force;
-                ball.vy += Math.sin(angle) * force;
-            }
+        // Отбор
+        if (myPlayer && tacklePressed && !pendingPenalty) {
+            performTackle(myPlayer);
+            tacklePressed = false;
         }
 
-        ball.x += ball.vx;
-        ball.y += ball.vy;
-        ball.vx *= 0.98;
-        ball.vy *= 0.98;
-        if (Math.abs(ball.vx) < 0.1) ball.vx = 0;
-        if (Math.abs(ball.vy) < 0.1) ball.vy = 0;
+        // Если мяч ничей — двигаем его физикой
+        if (!ballOwner) {
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+            ball.vx *= 0.98;
+            ball.vy *= 0.98;
+            if (Math.abs(ball.vx) < 0.1) ball.vx = 0;
+            if (Math.abs(ball.vy) < 0.1) ball.vy = 0;
+        }
 
-        // Скруглённые углы поля
+        // Скруглённые углы
         const cornerRadius = 35;
         if (ball.x < cornerRadius && ball.y < cornerRadius) {
             const dx = ball.x - cornerRadius;
@@ -1007,7 +1084,6 @@
             }
         }
 
-        // Стенки (прямые)
         if (ball.y < ball.r + 5) { ball.y = ball.r + 5; ball.vy *= -0.6; }
         if (ball.y > H - ball.r - 5) { ball.y = H - ball.r - 5; ball.vy *= -0.6; }
         if (ball.x < ball.r + 5 && !(ball.y > goalA.y && ball.y < goalA.y + goalA.h)) { 
@@ -1017,12 +1093,18 @@
             ball.x = W - ball.r - 5; ball.vx *= -0.6; 
         }
 
-        // ГОЛ только между стойками
+        // ГОЛ
         if (ball.x < goalA.x + goalA.w && ball.y > goalA.y + 5 && ball.y < goalA.y + goalA.h - 5) {
-            goalScored('B');
+            if (!ballOwner || ballOwner.team !== 'A') {
+                goalScored('B');
+                ballOwner = null;
+            }
         }
         if (ball.x > goalB.x - goalB.w && ball.y > goalB.y + 5 && ball.y < goalB.y + goalB.h - 5) {
-            goalScored('A');
+            if (!ballOwner || ballOwner.team !== 'B') {
+                goalScored('A');
+                ballOwner = null;
+            }
         }
 
         ball.x = Math.max(ball.r, Math.min(W - ball.r, ball.x));
@@ -1031,15 +1113,12 @@
 
     function draw() {
         ctx.clearRect(0, 0, W, H);
-        
-        // Поле
         const grad = ctx.createRadialGradient(W/2, H/2, 50, W/2, H/2, 400);
         grad.addColorStop(0, '#4caf50');
         grad.addColorStop(1, '#2e7d32');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
         
-        // Скруглённые углы поля (белая рамка)
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 3;
         const r = 35;
@@ -1056,7 +1135,6 @@
         ctx.closePath();
         ctx.stroke();
         
-        // Разметка
         ctx.strokeStyle = 'rgba(255,255,255,0.2)';
         ctx.lineWidth = 2;
         ctx.setLineDash([8,12]);
@@ -1069,17 +1147,14 @@
         ctx.arc(W/2, H/2, 60, 0, Math.PI*2);
         ctx.stroke();
 
-        // Ворота (новые, короткие, внутри поля)
+        // Ворота
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 4;
-        // Ворота A
         ctx.strokeRect(goalA.x, goalA.y, goalA.w, goalA.h);
-        // Перекладина
         ctx.beginPath();
         ctx.moveTo(goalA.x, goalA.y);
         ctx.lineTo(goalA.x + goalA.w, goalA.y);
         ctx.stroke();
-        // Сетка
         ctx.fillStyle = 'rgba(255,255,255,0.15)';
         ctx.fillRect(goalA.x, goalA.y, goalA.w, goalA.h);
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
@@ -1097,7 +1172,6 @@
             ctx.stroke();
         }
 
-        // Ворота B
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 4;
         ctx.strokeRect(goalB.x, goalB.y, goalB.w, goalB.h);
@@ -1122,7 +1196,6 @@
             ctx.stroke();
         }
 
-        // Игроки
         for (let p of allPlayers) {
             const isMy = p.isPlayer;
             ctx.shadowColor = isMy ? 'rgba(255,215,0,0.8)' : 'rgba(0,0,0,0.3)';
@@ -1144,9 +1217,16 @@
             const role = p.isGoalkeeper ? '🧤' : '⚡';
             ctx.fillText(p.name + ' ' + starStr + ' ' + role, p.x, p.y - p.r - 8);
             ctx.shadowBlur = 0;
+            // Индикатор владения мячом
+            if (p === ballOwner) {
+                ctx.strokeStyle = 'rgba(255,255,0,0.5)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r + 6, 0, Math.PI*2);
+                ctx.stroke();
+            }
         }
 
-        // Мяч
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
         ctx.shadowBlur = 20;
         ctx.beginPath();
@@ -1194,24 +1274,22 @@
         document.getElementById('menu').style.display = 'none';
         document.getElementById('joystick-area').style.display = 'block';
         document.getElementById('kick-btn').style.display = 'flex';
+        document.getElementById('tackle-btn').style.display = 'flex';
         gameState = 'playing';
         initPlayers();
-        resetBall();
         startMatch();
     });
 
     document.getElementById('resetBtn').addEventListener('click', resetProgress);
 
     // ----- УПРАВЛЕНИЕ ДЖОЙСТИКОМ -----
-    let joystickTouchId = null;
-
     joystickArea.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touch = e.touches[0];
         joystickTouchId = touch.identifier;
         joystickActive = true;
         updateJoystick(touch);
-    });
+    }, { passive: false });
 
     joystickArea.addEventListener('touchmove', (e) => {
         e.preventDefault();
@@ -1220,7 +1298,7 @@
                 updateJoystick(touch);
             }
         }
-    });
+    }, { passive: false });
 
     joystickArea.addEventListener('touchend', (e) => {
         e.preventDefault();
@@ -1229,7 +1307,7 @@
         joystickY = 0;
         joystickKnob.style.transform = 'translate(-50%, -50%)';
         joystickTouchId = null;
-    });
+    }, { passive: false });
 
     joystickArea.addEventListener('touchcancel', (e) => {
         joystickActive = false;
@@ -1266,61 +1344,57 @@
         e.preventDefault();
         kickPressed = true;
         kickBtn.classList.add('active');
-        if (pendingPenalty && penaltyPhase === 1) {
-            // Пенальти: удар по направлению джойстика
-            kickPressed = true;
-        }
-    });
+    }, { passive: false });
 
     kickBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
         kickBtn.classList.remove('active');
-        // Не сбрасываем kickPressed сразу, чтобы удар засчитался в update
-    });
+    }, { passive: false });
 
     kickBtn.addEventListener('touchcancel', (e) => {
         kickBtn.classList.remove('active');
     });
 
-    // ----- КАСАНИЯ ПОЛЯ (для управления, если джойстик не активен) -----
-    canvas.addEventListener('touchstart', (e) => {
-        // Если джойстик активен — игнорируем касания поля
-        if (joystickActive) return;
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const t = e.touches[0];
-        touchX = (t.clientX - rect.left) * scaleX;
-        touchY = (t.clientY - rect.top) * scaleY;
-        isTouching = true;
-    });
-
-    canvas.addEventListener('touchmove', (e) => {
-        if (joystickActive) return;
+    // ----- КНОПКА ОТБОРА -----
+    tackleBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const t = e.touches[0];
-        touchX = (t.clientX - rect.left) * scaleX;
-        touchY = (t.clientY - rect.top) * scaleY;
+        tacklePressed = true;
+        tackleBtn.classList.add('active');
+    }, { passive: false });
+
+    tackleBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        tackleBtn.classList.remove('active');
+    }, { passive: false });
+
+    tackleBtn.addEventListener('touchcancel', (e) => {
+        tackleBtn.classList.remove('active');
     });
 
-    canvas.addEventListener('touchend', () => { 
-        if (!joystickActive) isTouching = false; 
-    });
-
-    canvas.addEventListener('touchcancel', () => { 
-        if (!joystickActive) isTouching = false; 
-    });
-
-    document.getElementById('restartBtn').addEventListener('click', () => {
+    // ----- КНОПКИ ПОСЛЕ МАТЧА -----
+    restartBtn.addEventListener('click', () => {
         document.getElementById('winner').style.display = 'none';
-        document.getElementById('restartBtn').style.display = 'none';
+        restartBtn.style.display = 'none';
+        menuBtn.style.display = 'none';
         startMatch();
     });
 
-    // ----- СТАРТ -----
+    menuBtn.addEventListener('click', () => {
+        document.getElementById('winner').style.display = 'none';
+        restartBtn.style.display = 'none';
+        menuBtn.style.display = 'none';
+        document.getElementById('joystick-area').style.display = 'none';
+        document.getElementById('kick-btn').style.display = 'none';
+        document.getElementById('tackle-btn').style.display = 'none';
+        document.getElementById('menu').style.display = 'flex';
+        gameState = 'menu';
+        matchActive = false;
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    });
+
     updateAchievementUI();
     loop();
 </script>
