@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Match Cup</title>
+    <title>Match Cup 2v2</title>
     <style>
         * { margin: 0; padding: 0; touch-action: none; user-select: none; }
         body {
@@ -23,7 +23,6 @@
             max-width: 600px;
             max-height: 800px;
             border-radius: 16px;
-            box-shadow: 0 0 40px rgba(0,0,0,0.8);
             border: 4px solid #fff;
             touch-action: none;
         }
@@ -34,59 +33,81 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0,0,0,0.75);
+            background: rgba(0,0,0,0.85);
             backdrop-filter: blur(8px);
             z-index: 10;
             color: white;
             border-radius: 16px;
             padding: 20px;
             box-sizing: border-box;
+            overflow-y: auto;
         }
         #menu h1 {
             font-size: 2.6rem;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             background: linear-gradient(45deg, #f7971e, #ffd200);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        #menu .sub {
-            font-size: 1rem;
-            color: #aaa;
-            margin-bottom: 20px;
-        }
+        #menu .sub { font-size: 1rem; color: #aaa; margin-bottom: 12px; }
         .players {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 14px;
+            gap: 12px;
             width: 100%;
             max-width: 340px;
-            margin: 10px 0;
+            margin: 8px 0;
         }
         .player-card {
             background: rgba(255,255,255,0.08);
             border: 2px solid rgba(255,255,255,0.15);
             border-radius: 50px;
-            padding: 14px 8px;
+            padding: 12px 8px;
             text-align: center;
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: bold;
             color: #fff;
             cursor: pointer;
             transition: 0.2s;
-            backdrop-filter: blur(4px);
         }
         .player-card:active { transform: scale(0.94); background: rgba(255,215,0,0.2); border-color: gold; }
-        .player-card .emoji { font-size: 2rem; display: block; }
-        .player-card .team-tag { font-size: 0.6rem; opacity: 0.6; margin-top: 2px; }
-        .info {
+        .player-card .emoji { font-size: 1.8rem; display: block; }
+        .player-card .stars { color: #ffd700; font-size: 0.8rem; }
+        .difficulty {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .diff-btn {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 30px;
+            padding: 6px 16px;
+            color: #fff;
             font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .diff-btn.active { border-color: #ffd700; background: rgba(255,215,0,0.2); }
+        .diff-btn:active { transform: scale(0.94); }
+        .info {
+            font-size: 0.75rem;
             color: #888;
-            margin-top: 18px;
+            margin-top: 12px;
             text-align: center;
             max-width: 280px;
             border-top: 1px solid #333;
-            padding-top: 14px;
+            padding-top: 10px;
         }
+        #menuStats {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-top: 6px;
+            text-align: center;
+        }
+        #menuStats .stars { color: #ffd700; }
         #scoreboard {
             position: absolute;
             top: 12px;
@@ -96,17 +117,31 @@
             justify-content: space-between;
             padding: 0 16px;
             color: white;
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: bold;
             z-index: 5;
             text-shadow: 0 2px 12px black;
             pointer-events: none;
             box-sizing: border-box;
         }
-        #scoreboard div { background: rgba(0,0,0,0.5); padding: 4px 14px; border-radius: 30px; backdrop-filter: blur(4px); }
+        #scoreboard div { background: rgba(0,0,0,0.5); padding: 4px 14px; border-radius: 30px; }
+        #timer {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            color: #ffd700;
+            padding: 4px 20px;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            z-index: 5;
+            pointer-events: none;
+        }
         #winner {
             position: absolute;
-            top: 35%;
+            top: 30%;
             left: 0; width: 100%;
             text-align: center;
             color: gold;
@@ -118,6 +153,7 @@
             background: rgba(0,0,0,0.7);
             padding: 24px 0;
         }
+        #winner .cup { font-size: 4rem; display: block; }
         #restartBtn {
             position: absolute;
             bottom: 40px;
@@ -136,6 +172,46 @@
             cursor: pointer;
         }
         #restartBtn:active { transform: translateX(-50%) scale(0.94); }
+        #matchScore {
+            position: absolute;
+            bottom: 120px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+            font-size: 0.9rem;
+            z-index: 5;
+            pointer-events: none;
+            background: rgba(0,0,0,0.3);
+            padding: 4px 0;
+        }
+        #achievement {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: #ffd700;
+            padding: 8px 24px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            z-index: 15;
+            display: none;
+            pointer-events: none;
+            border: 2px solid gold;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .achieve-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 0.7rem;
+            color: #aaa;
+        }
+        .achieve-grid .done { color: #4caf50; }
+        .achieve-grid .not-done { color: #555; }
     </style>
 </head>
 <body>
@@ -146,19 +222,37 @@
     <h1>⚽ MATCH CUP</h1>
     <div class="sub">Выбери бойца</div>
     <div class="players">
-        <div class="player-card" data-player="0"><span class="emoji">⚔️</span>Хабиб<span class="team-tag">команда А</span></div>
-        <div class="player-card" data-player="1"><span class="emoji">⚔️</span>Салаудин<span class="team-tag">команда А</span></div>
-        <div class="player-card" data-player="2"><span class="emoji">🛡️</span>Шамиль Рб<span class="team-tag">команда Б</span></div>
-        <div class="player-card" data-player="3"><span class="emoji">🛡️</span>Шамиль Jr<span class="team-tag">команда Б</span></div>
+        <div class="player-card" data-player="0"><span class="emoji">⚔️</span>Хабиб<span class="stars" id="star0">⭐</span></div>
+        <div class="player-card" data-player="1"><span class="emoji">⚔️</span>Салаудин<span class="stars" id="star1">⭐</span></div>
+        <div class="player-card" data-player="2"><span class="emoji">🛡️</span>Шамиль Рб<span class="stars" id="star2">⭐⭐⭐</span></div>
+        <div class="player-card" data-player="3"><span class="emoji">🛡️</span>Шамиль Jr<span class="stars" id="star3">⭐⭐⭐</span></div>
     </div>
-    <div class="info">👆 Шамили всегда в одной команде. Хабиб и Салаудин — в другой. Забей 3 гола!</div>
+    <div style="font-size:0.8rem; color:#aaa; margin:4px 0;">Выбери сложность:</div>
+    <div class="difficulty">
+        <button class="diff-btn active" data-diff="easy">🟢 Лёгкий</button>
+        <button class="diff-btn" data-diff="medium">🟡 Средний</button>
+        <button class="diff-btn" data-diff="hard">🔴 Сложный</button>
+        <button class="diff-btn" data-diff="extreme">🔥 Хардкор</button>
+    </div>
+    <div id="menuStats">⭐ Твой рейтинг: <span id="playerStars">⭐</span> | 🏆 Побед: <span id="menuWins">0</span></div>
+    <div class="achieve-grid">
+        <div id="ach1">⚽ Первый гол: ❌</div>
+        <div id="ach2">🎯 Хет-трик: ❌</div>
+        <div id="ach3">🏆 Первая победа: ❌</div>
+        <div id="ach4">👑 Чемпион (5 побед): ❌</div>
+        <div id="ach5">💪 Машина (10 голов): ❌</div>
+    </div>
+    <div class="info">👆 Шамили всегда в одной команде. Хабиб и Салаудин — в другой. Забей 3 гола за матч!</div>
 </div>
 
 <div id="scoreboard">
     <div id="scoreA">0</div>
     <div id="scoreB">0</div>
 </div>
-<div id="winner">🏆 ПОБЕДА!</div>
+<div id="timer">⏱️ 1:00</div>
+<div id="matchScore">⚽ Счёт матча: 0 : 0</div>
+<div id="achievement">🏅 ДОСТИЖЕНИЕ!</div>
+<div id="winner"><span class="cup">🏆</span>ПОБЕДА!</div>
 <button id="restartBtn">🔁 Играть снова</button>
 
 <script>
@@ -167,7 +261,122 @@
     const W = 600, H = 800;
     canvas.width = W; canvas.height = H;
 
-    // ----- ИГРОКИ (4 персонажа) -----
+    // ----- СОХРАНЕНИЕ -----
+    function loadSave() {
+        const data = localStorage.getItem('matchcup_save');
+        if (data) {
+            const save = JSON.parse(data);
+            return save;
+        }
+        return { wins: 0, goals: 0, stars: 1, achievements: {} };
+    }
+
+    function saveGame(save) {
+        localStorage.setItem('matchcup_save', JSON.stringify(save));
+    }
+
+    let save = loadSave();
+    let selectedDifficulty = 'easy';
+    let diffStars = { easy: 2, medium: 3, hard: 4, extreme: 5 };
+
+    // Достижения
+    const ACHIEVEMENTS = {
+        firstGoal: false,
+        hatTrick: false,
+        firstWin: false,
+        champion: false,
+        machine: false
+    };
+    // загружаем сохранённые достижения
+    if (save.achievements) {
+        Object.assign(ACHIEVEMENTS, save.achievements);
+    }
+
+    function updateAchievementUI() {
+        const achMap = {
+            firstGoal: '⚽ Первый гол',
+            hatTrick: '🎯 Хет-трик',
+            firstWin: '🏆 Первая победа',
+            champion: '👑 Чемпион (5 побед)',
+            machine: '💪 Машина (10 голов)'
+        };
+        for (let key in achMap) {
+            const el = document.getElementById(key === 'firstGoal' ? 'ach1' : 
+                key === 'hatTrick' ? 'ach2' :
+                key === 'firstWin' ? 'ach3' :
+                key === 'champion' ? 'ach4' : 'ach5');
+            if (el) {
+                el.innerText = achMap[key] + (ACHIEVEMENTS[key] ? ' ✅' : ' ❌');
+                el.className = ACHIEVEMENTS[key] ? 'done' : 'not-done';
+            }
+        }
+        // Обновляем звёзды в меню
+        const starStr = '⭐'.repeat(save.stars || 1);
+        document.getElementById('playerStars').innerText = starStr;
+        document.getElementById('menuWins').innerText = save.wins || 0;
+        // звёзды игроков
+        for (let i = 0; i < 4; i++) {
+            const el = document.getElementById('star' + i);
+            if (i < 2) {
+                el.innerText = starStr;
+            } else {
+                const diff = diffStars[selectedDifficulty] || 3;
+                el.innerText = '⭐'.repeat(diff);
+            }
+        }
+    }
+
+    function checkAchievements() {
+        let changed = false;
+        if (!ACHIEVEMENTS.firstGoal && save.goals >= 1) {
+            ACHIEVEMENTS.firstGoal = true;
+            save.stars = Math.min(5, save.stars + 1);
+            changed = true;
+            showAchievement('⚽ Первый гол! +1 ⭐');
+        }
+        if (!ACHIEVEMENTS.hatTrick && save.goals >= 3) {
+            ACHIEVEMENTS.hatTrick = true;
+            save.stars = Math.min(5, save.stars + 1);
+            changed = true;
+            showAchievement('🎯 Хет-трик! +1 ⭐');
+        }
+        if (!ACHIEVEMENTS.firstWin && save.wins >= 1) {
+            ACHIEVEMENTS.firstWin = true;
+            save.stars = Math.min(5, save.stars + 1);
+            changed = true;
+            showAchievement('🏆 Первая победа! +1 ⭐');
+        }
+        if (!ACHIEVEMENTS.champion && save.wins >= 5) {
+            ACHIEVEMENTS.champion = true;
+            save.stars = Math.min(5, save.stars + 1);
+            changed = true;
+            showAchievement('👑 Чемпион! +1 ⭐');
+        }
+        if (!ACHIEVEMENTS.machine && save.goals >= 10) {
+            ACHIEVEMENTS.machine = true;
+            save.stars = Math.min(5, save.stars + 1);
+            changed = true;
+            showAchievement('💪 Машина! +1 ⭐');
+        }
+        if (changed) {
+            save.achievements = ACHIEVEMENTS;
+            saveGame(save);
+            updateAchievementUI();
+        }
+    }
+
+    let achievementTimer = null;
+    function showAchievement(text) {
+        const el = document.getElementById('achievement');
+        el.innerText = '🏅 ' + text;
+        el.style.display = 'block';
+        if (achievementTimer) clearTimeout(achievementTimer);
+        achievementTimer = setTimeout(() => {
+            el.style.display = 'none';
+        }, 3000);
+    }
+
+    // ----- ИГРОКИ -----
     const PLAYER_DATA = [
         { name: 'Хабиб', color: '#d32f2f', team: 'A' },
         { name: 'Салаудин', color: '#e57373', team: 'A' },
@@ -178,39 +387,47 @@
     // ----- СОСТОЯНИЕ -----
     let gameState = 'menu';
     let selectedPlayer = 0;
-    let scoreTeamA = 0;
-    let scoreTeamB = 0;
+    let scoreTeamA = 0, scoreTeamB = 0;
+    let winsA = 0, winsB = 0;
     const GOAL_LIMIT = 3;
+    const MATCH_TIME = 60;
+    let timeLeft = MATCH_TIME;
+    let matchActive = false;
+    let timerInterval = null;
+    let matchEnded = false;
+    let matchGoals = 0;
 
-    // Мяч
     let ball = { x: W/2, y: H/2, r: 11, vx: 0, vy: 0 };
 
-    // Ворота
     const goalA = { x: 15, y: H/2 - 65, w: 18, h: 130 };
     const goalB = { x: W-33, y: H/2 - 65, w: 18, h: 130 };
 
-    // Touch
     let touchX = W/2, touchY = H/2;
     let isTouching = false;
 
-    // ----- ИГРОКИ НА ПОЛЕ (динамические) -----
-    let teamA = [];
-    let teamB = [];
-    let allPlayers = [];
+    let teamA = [], teamB = [], allPlayers = [];
 
     function initPlayers() {
+        const starBonus = 1 + (save.stars - 1) * 0.15;
+        const botStars = diffStars[selectedDifficulty] || 3;
+        const botBonus = 1 + (botStars - 1) * 0.15;
         teamA = [
-            { id: 0, name: 'Хабиб', color: '#d32f2f', x: 150, y: 350, r: 22, isPlayer: false, team: 'A' },
-            { id: 1, name: 'Салаудин', color: '#e57373', x: 180, y: 480, r: 22, isPlayer: false, team: 'A' }
+            { id: 0, name: 'Хабиб', color: '#d32f2f', x: 150, y: 350, r: 22, isPlayer: false, team: 'A', targetX: 0, targetY: 0, style: 'aggro', speed: 1.6 * starBonus, power: 3.5 * starBonus },
+            { id: 1, name: 'Салаудин', color: '#e57373', x: 180, y: 480, r: 22, isPlayer: false, team: 'A', targetX: 0, targetY: 0, style: 'sneaky', speed: 1.6 * botBonus, power: 3.5 * botBonus }
         ];
         teamB = [
-            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 450, y: 320, r: 22, isPlayer: false, team: 'B' },
-            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: 420, y: 550, r: 22, isPlayer: false, team: 'B' }
+            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 450, y: 320, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botBonus, power: 3.5 * botBonus },
+            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: 420, y: 550, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botBonus, power: 3.5 * botBonus }
         ];
         allPlayers = [...teamA, ...teamB];
+        allPlayers.forEach(p => {
+            if (!p.isPlayer) {
+                p.targetX = 100 + Math.random() * 400;
+                p.targetY = 100 + Math.random() * 500;
+            }
+        });
     }
 
-    // ----- ВСПОМОГАТЕЛЬНЫЕ -----
     function resetBall() {
         ball.x = W/2 + (Math.random()*80-40);
         ball.y = H/2 + (Math.random()*80-40);
@@ -219,105 +436,228 @@
         if (Math.abs(ball.vx) < 0.4) ball.vx = 1;
     }
 
-    function resetGame() {
-        scoreTeamA = 0;
-        scoreTeamB = 0;
-        document.getElementById('scoreA').innerText = '0';
-        document.getElementById('scoreB').innerText = '0';
+    function startMatch() {
+        if (matchActive) return;
+        matchActive = true;
+        matchEnded = false;
+        matchGoals = 0;
+        timeLeft = MATCH_TIME;
+        document.getElementById('timer').innerText = '⏱️ 1:00';
         document.getElementById('winner').style.display = 'none';
         document.getElementById('restartBtn').style.display = 'none';
-        gameState = 'playing';
-        initPlayers();
-        // помечаем выбранного игрока
-        const idx = selectedPlayer;
-        if (idx < 2) {
-            teamA[idx].isPlayer = true;
-            teamA[idx].color = '#ffd700';
-        } else {
-            teamB[idx-2].isPlayer = true;
-            teamB[idx-2].color = '#ffd700';
-        }
-        // разброс начальных позиций
-        allPlayers.forEach(p => {
-            p.x = 100 + Math.random()*400;
-            p.y = 100 + Math.random()*500;
-        });
+        scoreTeamA = 0;
+        scoreTeamB = 0;
+        updateScoreDisplay();
         resetBall();
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            document.getElementById('timer').innerText = `⏱️ ${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                endMatch();
+            }
+        }, 1000);
+    }
+
+    function endMatch() {
+        matchActive = false;
+        matchEnded = true;
+        let winner = null;
+        if (scoreTeamA > scoreTeamB) { winner = 'A'; winsA++; }
+        else if (scoreTeamB > scoreTeamA) { winner = 'B'; winsB++; }
+        else { winner = 'draw'; }
+        
+        if (winner === 'A' && allPlayers.some(p => p.isPlayer && p.team === 'A')) {
+            save.wins = (save.wins || 0) + 1;
+            save.goals = (save.goals || 0) + scoreTeamA;
+            saveGame(save);
+            checkAchievements();
+            updateAchievementUI();
+        } else if (winner === 'B' && allPlayers.some(p => p.isPlayer && p.team === 'B')) {
+            save.wins = (save.wins || 0) + 1;
+            save.goals = (save.goals || 0) + scoreTeamB;
+            saveGame(save);
+            checkAchievements();
+            updateAchievementUI();
+        } else if (winner !== 'draw') {
+            save.goals = (save.goals || 0) + (winner === 'A' ? scoreTeamA : scoreTeamB);
+            saveGame(save);
+            checkAchievements();
+            updateAchievementUI();
+        }
+
+        document.getElementById('matchScore').innerText = `⚽ Счёт матча: ${scoreTeamA} : ${scoreTeamB}`;
+
+        const starStr = '⭐'.repeat(save.stars || 1);
+        if (winner === 'A' && winsA >= 5) {
+            showCup('Команда А', '#d32f2f');
+        } else if (winner === 'B' && winsB >= 5) {
+            showCup('Команда Б', '#1976d2');
+        } else {
+            document.getElementById('winner').innerHTML = `<span class="cup">🏆</span> Победа команды ${winner === 'A' ? 'А' : 'Б'}!<br><span style="font-size:1rem;color:#aaa;">⭐ ${starStr}</span>`;
+            document.getElementById('winner').style.display = 'block';
+            document.getElementById('restartBtn').style.display = 'block';
+        }
+    }
+
+    function showCup(teamName, color) {
+        document.getElementById('winner').innerHTML = `
+            <span class="cup">🏆</span>
+            <div style="font-size:1.8rem;">${teamName} выиграла КУБОК!</div>
+            <div style="font-size:1rem; color:#aaa; margin-top:10px;">5 побед! 🎉</div>
+            <div style="font-size:0.8rem; color:#ffd700;">⭐ ${'⭐'.repeat(save.stars || 1)}</div>
+        `;
+        document.getElementById('winner').style.display = 'block';
+        document.getElementById('restartBtn').style.display = 'block';
+        winsA = 0;
+        winsB = 0;
+    }
+
+    function updateScoreDisplay() {
+        document.getElementById('scoreA').innerText = scoreTeamA;
+        document.getElementById('scoreB').innerText = scoreTeamB;
+        document.getElementById('matchScore').innerText = `⚽ Счёт матча: ${scoreTeamA} : ${scoreTeamB}`;
     }
 
     function goalScored(team) {
-        if (gameState === 'finished') return;
-        if (team === 'A') scoreTeamA++; else scoreTeamB++;
-        document.getElementById('scoreA').innerText = scoreTeamA;
-        document.getElementById('scoreB').innerText = scoreTeamB;
-        if (scoreTeamA >= GOAL_LIMIT || scoreTeamB >= GOAL_LIMIT) {
-            gameState = 'finished';
-            const msg = (scoreTeamA >= GOAL_LIMIT) ? '🏆 Команда А победила!' : '🏆 Команда Б победила!';
-            document.getElementById('winner').innerText = msg;
-            document.getElementById('winner').style.display = 'block';
-            document.getElementById('restartBtn').style.display = 'block';
-            return;
+        if (!matchActive || matchEnded) return;
+        if (team === 'A') {
+            scoreTeamA++;
+            matchGoals++;
+            // если игрок в команде А
+            if (allPlayers.some(p => p.isPlayer && p.team === 'A')) {
+                save.goals = (save.goals || 0) + 1;
+                saveGame(save);
+                checkAchievements();
+                updateAchievementUI();
+            }
+        } else {
+            scoreTeamB++;
+            matchGoals++;
+            if (allPlayers.some(p => p.isPlayer && p.team === 'B')) {
+                save.goals = (save.goals || 0) + 1;
+                saveGame(save);
+                checkAchievements();
+                updateAchievementUI();
+            }
         }
-        resetBall();
+        updateScoreDisplay();
+        if (scoreTeamA >= GOAL_LIMIT || scoreTeamB >= GOAL_LIMIT) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            endMatch();
+        } else {
+            resetBall();
+        }
     }
 
-    // БОТ
+    // ----- БОТЫ (с учётом рейтинга) -----
     function updateBot(p, isTeamA) {
         const dx = ball.x - p.x;
         const dy = ball.y - p.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        let speed = 1.6;
+        const distToBall = Math.sqrt(dx*dx + dy*dy);
 
-        // Определяем направление удара (в зависимости от команды)
-        const targetX = isTeamA ? W - 40 : 20; // A бьёт в правые ворота, B в левые
-        const targetY = H/2 + (Math.random()-0.5)*80;
+        let targetX = p.targetX;
+        let targetY = p.targetY;
+        const speed = p.speed || 1.6;
+        const power = p.power || 3.5;
 
-        if (dist < 28 && Math.random() < 0.04) {
-            const kx = targetX - ball.x;
-            const ky = targetY - ball.y;
-            const kd = Math.sqrt(kx*kx + ky*ky) || 1;
-            ball.vx += (kx / kd) * 4.5;
-            ball.vy += (ky / kd) * 4.5;
+        if (distToBall < 300 && Math.random() < 0.02) {
+            targetX = ball.x + (Math.random()-0.5)*100;
+            targetY = ball.y + (Math.random()-0.5)*100;
         }
 
-        if (dist > 4) {
-            const move = speed / dist;
-            p.x += dx * move;
-            p.y += dy * move;
+        if (p.style === 'aggro') {
+            if (distToBall < 200) {
+                targetX = ball.x + (Math.random()-0.5)*80;
+                targetY = ball.y + (Math.random()-0.5)*80;
+            } else {
+                targetX = ball.x;
+                targetY = ball.y;
+            }
+        } else if (p.style === 'sneaky') {
+            if (Math.random() < 0.01) {
+                targetX = 100 + Math.random() * 400;
+                targetY = 100 + Math.random() * 500;
+            }
+            if (distToBall < 35 && Math.random() < 0.06) {
+                const targetGoalX = isTeamA ? W-40 : 20;
+                const targetGoalY = H/2 + (Math.random()-0.5)*80;
+                const kx = targetGoalX - ball.x;
+                const ky = targetGoalY - ball.y;
+                const kd = Math.sqrt(kx*kx + ky*ky) || 1;
+                ball.vx += (kx / kd) * power;
+                ball.vy += (ky / kd) * power;
+            }
+        } else if (p.style === 'random') {
+            if (Math.random() < 0.008) {
+                targetX = 100 + Math.random() * 400;
+                targetY = 100 + Math.random() * 500;
+            }
+            if (distToBall < 30 && Math.random() < 0.04) {
+                const targetGoalX = isTeamA ? W-40 : 20;
+                const targetGoalY = H/2 + (Math.random()-0.5)*80;
+                const kx = targetGoalX - ball.x;
+                const ky = targetGoalY - ball.y;
+                const kd = Math.sqrt(kx*kx + ky*ky) || 1;
+                ball.vx += (kx / kd) * power;
+                ball.vy += (ky / kd) * power;
+            }
         }
-        p.x = Math.max(30, Math.min(W-30, p.x));
-        p.y = Math.max(40, Math.min(H-40, p.y));
+
+        const dxT = targetX - p.x;
+        const dyT = targetY - p.y;
+        const distT = Math.sqrt(dxT*dxT + dyT*dyT);
+        const spd = speed * (0.9 + Math.random() * 0.2);
+
+        if (distT > 4) {
+            const move = spd / distT;
+            p.x += dxT * move;
+            p.y += dyT * move;
+        } else {
+            p.targetX = 100 + Math.random() * 400;
+            p.targetY = 100 + Math.random() * 500;
+        }
+
+        if (p.x < 30) { p.x = 35; p.targetX = 100 + Math.random() * 300; }
+        if (p.x > W-30) { p.x = W-35; p.targetX = 100 + Math.random() * 300; }
+        if (p.y < 40) { p.y = 45; p.targetY = 100 + Math.random() * 300; }
+        if (p.y > H-40) { p.y = H-45; p.targetY = 100 + Math.random() * 300; }
+
+        p.x = Math.max(25, Math.min(W-25, p.x));
+        p.y = Math.max(35, Math.min(H-35, p.y));
     }
 
     // ----- ОБНОВЛЕНИЕ -----
     function update() {
-        if (gameState !== 'playing') return;
+        if (gameState !== 'playing' || !matchActive || matchEnded) return;
 
-        // управление игроком
         const myPlayer = allPlayers.find(p => p.isPlayer === true);
+        const speedBonus = 1 + (save.stars - 1) * 0.15;
         if (myPlayer && isTouching) {
             const dx = touchX - myPlayer.x;
             const dy = touchY - myPlayer.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             if (dist > 3) {
-                const speed = 5.2;
+                const speed = 5.2 * speedBonus;
                 myPlayer.x += (dx / dist) * speed;
                 myPlayer.y += (dy / dist) * speed;
             }
         }
-        // границы для всех
         allPlayers.forEach(p => {
             p.x = Math.max(25, Math.min(W-25, p.x));
             p.y = Math.max(35, Math.min(H-35, p.y));
         });
 
-        // боты (все, у кого isPlayer == false)
         allPlayers.filter(p => !p.isPlayer).forEach(p => {
             const isA = p.team === 'A';
             updateBot(p, isA);
         });
 
-        // Мяч + столкновения с игроками
         for (let p of allPlayers) {
             const dx = ball.x - p.x;
             const dy = ball.y - p.y;
@@ -327,13 +667,13 @@
                 const overlap = (ball.r + p.r - dist) * 0.5;
                 ball.x += Math.cos(angle) * overlap;
                 ball.y += Math.sin(angle) * overlap;
-                const force = 3.5 + Math.random()*2;
+                const power = p.isPlayer ? 3.5 * speedBonus : 3.5;
+                const force = power + Math.random()*2;
                 ball.vx += Math.cos(angle) * force;
                 ball.vy += Math.sin(angle) * force;
             }
         }
 
-        // движение мяча
         ball.x += ball.vx;
         ball.y += ball.vy;
         ball.vx *= 0.985;
@@ -341,11 +681,9 @@
         if (Math.abs(ball.vx) < 0.05) ball.vx = 0;
         if (Math.abs(ball.vy) < 0.05) ball.vy = 0;
 
-        // стенки
         if (ball.y < ball.r) { ball.y = ball.r; ball.vy *= -0.5; }
         if (ball.y > H - ball.r) { ball.y = H - ball.r; ball.vy *= -0.5; }
 
-        // голы
         if (ball.x < goalA.x + goalA.w && ball.y > goalA.y && ball.y < goalA.y + goalA.h) {
             goalScored('B');
         }
@@ -353,7 +691,6 @@
             goalScored('A');
         }
 
-        // отскок от боковых стенок (около ворот)
         if (ball.x < 20 && ball.y > 100 && ball.y < H-100) { ball.x = 20; ball.vx *= -0.5; }
         if (ball.x > W-20 && ball.y > 100 && ball.y < H-100) { ball.x = W-20; ball.vx *= -0.5; }
         if (ball.x < 0 || ball.x > W) { ball.vx *= -0.5; ball.x = Math.max(10, Math.min(W-10, ball.x)); }
@@ -364,15 +701,12 @@
 
     function draw() {
         ctx.clearRect(0, 0, W, H);
-
-        // поле
         const grad = ctx.createLinearGradient(0,0,0,H);
         grad.addColorStop(0, '#388e3c');
         grad.addColorStop(1, '#2e7d32');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, W, H);
 
-        // разметка
         ctx.strokeStyle = 'rgba(255,255,255,0.2)';
         ctx.lineWidth = 2;
         ctx.setLineDash([8,12]);
@@ -385,21 +719,18 @@
         ctx.arc(W/2, H/2, 80, 0, Math.PI*2);
         ctx.stroke();
 
-        // ворота A
         ctx.fillStyle = 'rgba(255,0,0,0.2)';
         ctx.fillRect(goalA.x, goalA.y, goalA.w, goalA.h);
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 3;
         ctx.strokeRect(goalA.x, goalA.y, goalA.w, goalA.h);
 
-        // ворота B
         ctx.fillStyle = 'rgba(0,0,255,0.2)';
         ctx.fillRect(goalB.x, goalB.y, goalB.w, goalB.h);
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 3;
         ctx.strokeRect(goalB.x, goalB.y, goalB.w, goalB.h);
 
-        // игроки
         for (let p of allPlayers) {
             const isMy = p.isPlayer;
             ctx.shadowColor = isMy ? 'rgba(255,215,0,0.8)' : 'rgba(0,0,0,0.3)';
@@ -412,17 +743,16 @@
             ctx.strokeStyle = isMy ? 'gold' : '#222';
             ctx.lineWidth = isMy ? 4 : 2;
             ctx.stroke();
-            // имя над игроком
             ctx.fillStyle = 'white';
             ctx.font = 'bold 11px sans-serif';
             ctx.textAlign = 'center';
             ctx.shadowBlur = 6;
             ctx.shadowColor = 'black';
-            ctx.fillText(p.name, p.x, p.y - p.r - 8);
+            const starStr = isMy ? '⭐'.repeat(save.stars || 1) : '⭐'.repeat(diffStars[selectedDifficulty] || 3);
+            ctx.fillText(p.name + ' ' + starStr, p.x, p.y - p.r - 8);
             ctx.shadowBlur = 0;
         }
 
-        // мяч
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
         ctx.shadowBlur = 20;
         ctx.beginPath();
@@ -452,7 +782,22 @@
             selectedPlayer = idx;
             document.getElementById('menu').style.display = 'none';
             gameState = 'playing';
-            resetGame();
+            initPlayers();
+            const p = selectedPlayer < 2 ? teamA[selectedPlayer] : teamB[selectedPlayer-2];
+            p.isPlayer = true;
+            p.color = '#ffd700';
+            allPlayers.forEach(pl => { if (pl !== p) pl.isPlayer = false; });
+            resetBall();
+            startMatch();
+        });
+    });
+
+    document.querySelectorAll('.diff-btn').forEach(el => {
+        el.addEventListener('click', function() {
+            document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            selectedDifficulty = this.dataset.diff;
+            updateAchievementUI();
         });
     });
 
@@ -479,14 +824,13 @@
     canvas.addEventListener('touchcancel', () => { isTouching = false; });
 
     document.getElementById('restartBtn').addEventListener('click', () => {
-        resetGame();
         document.getElementById('winner').style.display = 'none';
         document.getElementById('restartBtn').style.display = 'none';
+        startMatch();
     });
 
-    // ----- СТАРТ -----
+    updateAchievementUI();
     initPlayers();
-    resetGame();
     loop();
 </script>
 
