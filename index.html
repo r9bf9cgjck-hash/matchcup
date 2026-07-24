@@ -228,7 +228,6 @@
         }
         .achieve-grid .done { color: #4caf50; }
         .achieve-grid .not-done { color: #555; }
-        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -279,13 +278,15 @@
     const W = 600, H = 800;
     canvas.width = W; canvas.height = H;
 
-    // ----- СОХРАНЕНИЕ -----
+    // ----- СОХРАНЕНИЕ (исправлено) -----
     function loadSave() {
-        const data = localStorage.getItem('matchcup_save');
-        if (data) {
-            const save = JSON.parse(data);
-            return save;
-        }
+        try {
+            const data = localStorage.getItem('matchcup_save');
+            if (data) {
+                const save = JSON.parse(data);
+                return save;
+            }
+        } catch (e) {}
         return { wins: 0, goals: 0, stars: 1, achievements: {} };
     }
 
@@ -333,7 +334,6 @@
         const starStr = '⭐'.repeat(save.stars || 1);
         document.getElementById('playerStars').innerText = starStr;
         document.getElementById('menuWins').innerText = save.wins || 0;
-        // звёзды для карточек игроков
         for (let i = 0; i < 4; i++) {
             const el = document.getElementById('star' + i);
             if (i < 2) {
@@ -343,7 +343,6 @@
                 el.innerText = '⭐'.repeat(diff);
             }
         }
-        // Обновляем кнопку старта
         document.getElementById('startBtn').disabled = (selectedPlayer === -1);
     }
 
@@ -433,18 +432,15 @@
         const botSpeed = diffSpeed[selectedDifficulty] || 1.3;
         const botPower = diffPower[selectedDifficulty] || 3.5;
         const botBonus = 1 + (botStars - 1) * 0.1;
-        // Команда А: Хабиб + Салаудин
         teamA = [
-            { id: 0, name: 'Хабиб', color: '#d32f2f', x: 150, y: 350, r: 22, isPlayer: false, team: 'A', targetX: 0, targetY: 0, style: 'aggro', speed: 1.6 * starBonus, power: 3.5 * starBonus },
-            { id: 1, name: 'Салаудин', color: '#e57373', x: 180, y: 480, r: 22, isPlayer: false, team: 'A', targetX: 0, targetY: 0, style: 'sneaky', speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus }
+            { id: 0, name: 'Хабиб', color: '#d32f2f', x: 150 + Math.random()*30, y: 300 + Math.random()*100, r: 22, isPlayer: false, team: 'A', targetX: 0, targetY: 0, style: 'aggro', speed: 1.6 * starBonus, power: 3.5 * starBonus },
+            { id: 1, name: 'Салаудин', color: '#e57373', x: 150 + Math.random()*30, y: 450 + Math.random()*100, r: 22, isPlayer: false, team: 'A', targetX: 0, targetY: 0, style: 'sneaky', speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus }
         ];
-        // Команда Б: Шамили
         teamB = [
-            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 450, y: 320, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus },
-            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: 420, y: 550, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus }
+            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 400 + Math.random()*30, y: 300 + Math.random()*100, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus },
+            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: 400 + Math.random()*30, y: 450 + Math.random()*100, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus }
         ];
         allPlayers = [...teamA, ...teamB];
-        // Помечаем выбранного игрока
         if (selectedPlayer >= 0) {
             let p = null;
             if (selectedPlayer < 2) p = teamA[selectedPlayer];
@@ -456,8 +452,8 @@
         }
         allPlayers.forEach(p => {
             if (!p.isPlayer) {
-                p.targetX = 100 + Math.random() * 400;
-                p.targetY = 100 + Math.random() * 500;
+                p.targetX = p.x + (Math.random()-0.5)*200;
+                p.targetY = p.y + (Math.random()-0.5)*200;
             }
         });
     }
@@ -589,29 +585,30 @@
         }
     }
 
-    // ----- БОТЫ -----
+    // ----- БОТЫ (исправлено: разбегаются) -----
     function updateBot(p, isTeamA) {
         const dx = ball.x - p.x;
         const dy = ball.y - p.y;
         const distToBall = Math.sqrt(dx*dx + dy*dy);
 
-        let targetX = ball.x;
-        let targetY = ball.y;
+        // Каждый бот имеет свою "зону" — не бегут друг к другу
+        let targetX = p.targetX;
+        let targetY = p.targetY;
 
-        if (p.style === 'sneaky' && Math.random() < 0.02) {
-            targetX = 100 + Math.random() * 400;
-            targetY = 100 + Math.random() * 500;
-        } else if (p.style === 'random' && Math.random() < 0.01) {
-            targetX = 100 + Math.random() * 400;
-            targetY = 100 + Math.random() * 500;
+        // Если мяч близко — переключаемся на него, но с небольшим разбросом
+        if (distToBall < 250 && Math.random() < 0.03) {
+            targetX = ball.x + (Math.random()-0.5) * 120;
+            targetY = ball.y + (Math.random()-0.5) * 120;
         }
 
+        // Если мяч далеко — бежим к нему, но не в ту же точку
         if (distToBall > 300) {
-            targetX = ball.x + (Math.random()-0.5)*50;
-            targetY = ball.y + (Math.random()-0.5)*50;
+            targetX = ball.x + (Math.random()-0.5) * 80;
+            targetY = ball.y + (Math.random()-0.5) * 80;
         }
 
-        if (distToBall < 35 && Math.random() < 0.08) {
+        // Если очень близко — бьём
+        if (distToBall < 35 && Math.random() < 0.07) {
             const targetGoalX = isTeamA ? W-40 : 20;
             const targetGoalY = H/2 + (Math.random()-0.5)*80;
             const kx = targetGoalX - ball.x;
@@ -622,6 +619,7 @@
             ball.vy += (ky / kd) * power * (0.8 + Math.random() * 0.4);
         }
 
+        // Движение к цели
         const dxT = targetX - p.x;
         const dyT = targetY - p.y;
         const distT = Math.sqrt(dxT*dxT + dyT*dyT);
@@ -632,14 +630,16 @@
             p.x += dxT * move;
             p.y += dyT * move;
         } else {
+            // Новая случайная цель, чтобы не стоять на месте
             p.targetX = 100 + Math.random() * 400;
             p.targetY = 100 + Math.random() * 500;
         }
 
-        if (p.x < 30) { p.x = 35; }
-        if (p.x > W-30) { p.x = W-35; }
-        if (p.y < 40) { p.y = 45; }
-        if (p.y > H-40) { p.y = H-45; }
+        // Не застреваем в углах
+        if (p.x < 30) { p.x = 35; p.targetX = 100 + Math.random() * 300; }
+        if (p.x > W-30) { p.x = W-35; p.targetX = 100 + Math.random() * 300; }
+        if (p.y < 40) { p.y = 45; p.targetY = 100 + Math.random() * 300; }
+        if (p.y > H-40) { p.y = H-45; p.targetY = 100 + Math.random() * 300; }
 
         p.x = Math.max(25, Math.min(W-25, p.x));
         p.y = Math.max(35, Math.min(H-35, p.y));
@@ -689,7 +689,6 @@
 
         ball.x += ball.vx;
         ball.y += ball.vy;
-        // меньше трения — мяч летит резче
         ball.vx *= 0.99;
         ball.vy *= 0.99;
         if (Math.abs(ball.vx) < 0.1) ball.vx = 0;
