@@ -73,6 +73,7 @@
         .player-card:active { transform: scale(0.94); background: rgba(255,215,0,0.2); border-color: gold; }
         .player-card .emoji { font-size: 1.8rem; display: block; }
         .player-card .stars { color: #ffd700; font-size: 0.8rem; }
+        .player-card.selected { border-color: #ffd700; background: rgba(255,215,0,0.15); }
         .difficulty {
             display: flex;
             gap: 8px;
@@ -92,6 +93,21 @@
         }
         .diff-btn.active { border-color: #ffd700; background: rgba(255,215,0,0.2); }
         .diff-btn:active { transform: scale(0.94); }
+        #startBtn {
+            background: #4caf50;
+            border: none;
+            color: #fff;
+            padding: 12px 40px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 20px rgba(76,175,80,0.3);
+        }
+        #startBtn:active { transform: scale(0.94); }
+        #startBtn:disabled { opacity: 0.4; transform: none; }
         .info {
             font-size: 0.75rem;
             color: #888;
@@ -212,6 +228,7 @@
         }
         .achieve-grid .done { color: #4caf50; }
         .achieve-grid .not-done { color: #555; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -220,20 +237,21 @@
 
 <div id="menu">
     <h1>⚽ MATCH CUP</h1>
-    <div class="sub">Выбери бойца</div>
+    <div class="sub">Шаг 1: Выбери игрока</div>
     <div class="players">
         <div class="player-card" data-player="0"><span class="emoji">⚔️</span>Хабиб<span class="stars" id="star0">⭐</span></div>
         <div class="player-card" data-player="1"><span class="emoji">⚔️</span>Салаудин<span class="stars" id="star1">⭐</span></div>
         <div class="player-card" data-player="2"><span class="emoji">🛡️</span>Шамиль Рб<span class="stars" id="star2">⭐⭐⭐</span></div>
         <div class="player-card" data-player="3"><span class="emoji">🛡️</span>Шамиль Jr<span class="stars" id="star3">⭐⭐⭐</span></div>
     </div>
-    <div style="font-size:0.8rem; color:#aaa; margin:4px 0;">Выбери сложность:</div>
+    <div style="font-size:0.8rem; color:#aaa; margin:4px 0;">Шаг 2: Выбери сложность</div>
     <div class="difficulty">
         <button class="diff-btn active" data-diff="easy">🟢 Лёгкий</button>
         <button class="diff-btn" data-diff="medium">🟡 Средний</button>
         <button class="diff-btn" data-diff="hard">🔴 Сложный</button>
         <button class="diff-btn" data-diff="extreme">🔥 Хардкор</button>
     </div>
+    <button id="startBtn" disabled>▶️ НАЧАТЬ МАТЧ</button>
     <div id="menuStats">⭐ Твой рейтинг: <span id="playerStars">⭐</span> | 🏆 Побед: <span id="menuWins">0</span></div>
     <div class="achieve-grid">
         <div id="ach1">⚽ Первый гол: ❌</div>
@@ -277,7 +295,10 @@
 
     let save = loadSave();
     let selectedDifficulty = 'easy';
+    let selectedPlayer = -1;
     let diffStars = { easy: 2, medium: 3, hard: 4, extreme: 5 };
+    let diffSpeed = { easy: 1.0, medium: 1.3, hard: 1.7, extreme: 2.2 };
+    let diffPower = { easy: 2.5, medium: 3.5, hard: 4.5, extreme: 5.5 };
 
     // Достижения
     const ACHIEVEMENTS = {
@@ -287,7 +308,6 @@
         champion: false,
         machine: false
     };
-    // загружаем сохранённые достижения
     if (save.achievements) {
         Object.assign(ACHIEVEMENTS, save.achievements);
     }
@@ -310,11 +330,10 @@
                 el.className = ACHIEVEMENTS[key] ? 'done' : 'not-done';
             }
         }
-        // Обновляем звёзды в меню
         const starStr = '⭐'.repeat(save.stars || 1);
         document.getElementById('playerStars').innerText = starStr;
         document.getElementById('menuWins').innerText = save.wins || 0;
-        // звёзды игроков
+        // звёзды для карточек игроков
         for (let i = 0; i < 4; i++) {
             const el = document.getElementById('star' + i);
             if (i < 2) {
@@ -324,6 +343,8 @@
                 el.innerText = '⭐'.repeat(diff);
             }
         }
+        // Обновляем кнопку старта
+        document.getElementById('startBtn').disabled = (selectedPlayer === -1);
     }
 
     function checkAchievements() {
@@ -384,9 +405,8 @@
         { name: 'Шамиль Jr', color: '#64b5f6', team: 'B' }
     ];
 
-    // ----- СОСТОЯНИЕ -----
+    // ----- СОСТОЯНИЕ ИГРЫ -----
     let gameState = 'menu';
-    let selectedPlayer = 0;
     let scoreTeamA = 0, scoreTeamB = 0;
     let winsA = 0, winsB = 0;
     const GOAL_LIMIT = 3;
@@ -410,16 +430,30 @@
     function initPlayers() {
         const starBonus = 1 + (save.stars - 1) * 0.15;
         const botStars = diffStars[selectedDifficulty] || 3;
-        const botBonus = 1 + (botStars - 1) * 0.15;
+        const botSpeed = diffSpeed[selectedDifficulty] || 1.3;
+        const botPower = diffPower[selectedDifficulty] || 3.5;
+        const botBonus = 1 + (botStars - 1) * 0.1;
+        // Команда А: Хабиб + Салаудин
         teamA = [
             { id: 0, name: 'Хабиб', color: '#d32f2f', x: 150, y: 350, r: 22, isPlayer: false, team: 'A', targetX: 0, targetY: 0, style: 'aggro', speed: 1.6 * starBonus, power: 3.5 * starBonus },
-            { id: 1, name: 'Салаудин', color: '#e57373', x: 180, y: 480, r: 22, isPlayer: false, team: 'A', targetX: 0, targetY: 0, style: 'sneaky', speed: 1.6 * botBonus, power: 3.5 * botBonus }
+            { id: 1, name: 'Салаудин', color: '#e57373', x: 180, y: 480, r: 22, isPlayer: false, team: 'A', targetX: 0, targetY: 0, style: 'sneaky', speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus }
         ];
+        // Команда Б: Шамили
         teamB = [
-            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 450, y: 320, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botBonus, power: 3.5 * botBonus },
-            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: 420, y: 550, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botBonus, power: 3.5 * botBonus }
+            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 450, y: 320, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus },
+            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: 420, y: 550, r: 22, isPlayer: false, team: 'B', targetX: 0, targetY: 0, style: 'random', speed: 1.6 * botSpeed * botBonus, power: 3.5 * botPower * botBonus }
         ];
         allPlayers = [...teamA, ...teamB];
+        // Помечаем выбранного игрока
+        if (selectedPlayer >= 0) {
+            let p = null;
+            if (selectedPlayer < 2) p = teamA[selectedPlayer];
+            else p = teamB[selectedPlayer - 2];
+            if (p) {
+                p.isPlayer = true;
+                p.color = '#ffd700';
+            }
+        }
         allPlayers.forEach(p => {
             if (!p.isPlayer) {
                 p.targetX = 100 + Math.random() * 400;
@@ -431,9 +465,10 @@
     function resetBall() {
         ball.x = W/2 + (Math.random()*80-40);
         ball.y = H/2 + (Math.random()*80-40);
-        ball.vx = (Math.random()*3-1.5)*1.5;
-        ball.vy = (Math.random()*3-1.5)*1.5;
-        if (Math.abs(ball.vx) < 0.4) ball.vx = 1;
+        ball.vx = (Math.random()*6-3);
+        ball.vy = (Math.random()*6-3);
+        if (Math.abs(ball.vx) < 0.5) ball.vx = (Math.random() > 0.5 ? 2 : -2);
+        if (Math.abs(ball.vy) < 0.5) ball.vy = (Math.random() > 0.5 ? 2 : -2);
     }
 
     function startMatch() {
@@ -528,7 +563,6 @@
         if (team === 'A') {
             scoreTeamA++;
             matchGoals++;
-            // если игрок в команде А
             if (allPlayers.some(p => p.isPlayer && p.team === 'A')) {
                 save.goals = (save.goals || 0) + 1;
                 saveGame(save);
@@ -555,64 +589,43 @@
         }
     }
 
-    // ----- БОТЫ (с учётом рейтинга) -----
+    // ----- БОТЫ -----
     function updateBot(p, isTeamA) {
         const dx = ball.x - p.x;
         const dy = ball.y - p.y;
         const distToBall = Math.sqrt(dx*dx + dy*dy);
 
-        let targetX = p.targetX;
-        let targetY = p.targetY;
-        const speed = p.speed || 1.6;
-        const power = p.power || 3.5;
+        let targetX = ball.x;
+        let targetY = ball.y;
 
-        if (distToBall < 300 && Math.random() < 0.02) {
-            targetX = ball.x + (Math.random()-0.5)*100;
-            targetY = ball.y + (Math.random()-0.5)*100;
+        if (p.style === 'sneaky' && Math.random() < 0.02) {
+            targetX = 100 + Math.random() * 400;
+            targetY = 100 + Math.random() * 500;
+        } else if (p.style === 'random' && Math.random() < 0.01) {
+            targetX = 100 + Math.random() * 400;
+            targetY = 100 + Math.random() * 500;
         }
 
-        if (p.style === 'aggro') {
-            if (distToBall < 200) {
-                targetX = ball.x + (Math.random()-0.5)*80;
-                targetY = ball.y + (Math.random()-0.5)*80;
-            } else {
-                targetX = ball.x;
-                targetY = ball.y;
-            }
-        } else if (p.style === 'sneaky') {
-            if (Math.random() < 0.01) {
-                targetX = 100 + Math.random() * 400;
-                targetY = 100 + Math.random() * 500;
-            }
-            if (distToBall < 35 && Math.random() < 0.06) {
-                const targetGoalX = isTeamA ? W-40 : 20;
-                const targetGoalY = H/2 + (Math.random()-0.5)*80;
-                const kx = targetGoalX - ball.x;
-                const ky = targetGoalY - ball.y;
-                const kd = Math.sqrt(kx*kx + ky*ky) || 1;
-                ball.vx += (kx / kd) * power;
-                ball.vy += (ky / kd) * power;
-            }
-        } else if (p.style === 'random') {
-            if (Math.random() < 0.008) {
-                targetX = 100 + Math.random() * 400;
-                targetY = 100 + Math.random() * 500;
-            }
-            if (distToBall < 30 && Math.random() < 0.04) {
-                const targetGoalX = isTeamA ? W-40 : 20;
-                const targetGoalY = H/2 + (Math.random()-0.5)*80;
-                const kx = targetGoalX - ball.x;
-                const ky = targetGoalY - ball.y;
-                const kd = Math.sqrt(kx*kx + ky*ky) || 1;
-                ball.vx += (kx / kd) * power;
-                ball.vy += (ky / kd) * power;
-            }
+        if (distToBall > 300) {
+            targetX = ball.x + (Math.random()-0.5)*50;
+            targetY = ball.y + (Math.random()-0.5)*50;
+        }
+
+        if (distToBall < 35 && Math.random() < 0.08) {
+            const targetGoalX = isTeamA ? W-40 : 20;
+            const targetGoalY = H/2 + (Math.random()-0.5)*80;
+            const kx = targetGoalX - ball.x;
+            const ky = targetGoalY - ball.y;
+            const kd = Math.sqrt(kx*kx + ky*ky) || 1;
+            const power = p.power || 3.5;
+            ball.vx += (kx / kd) * power * (0.8 + Math.random() * 0.4);
+            ball.vy += (ky / kd) * power * (0.8 + Math.random() * 0.4);
         }
 
         const dxT = targetX - p.x;
         const dyT = targetY - p.y;
         const distT = Math.sqrt(dxT*dxT + dyT*dyT);
-        const spd = speed * (0.9 + Math.random() * 0.2);
+        const spd = (p.speed || 1.6) * (0.9 + Math.random() * 0.2);
 
         if (distT > 4) {
             const move = spd / distT;
@@ -623,10 +636,10 @@
             p.targetY = 100 + Math.random() * 500;
         }
 
-        if (p.x < 30) { p.x = 35; p.targetX = 100 + Math.random() * 300; }
-        if (p.x > W-30) { p.x = W-35; p.targetX = 100 + Math.random() * 300; }
-        if (p.y < 40) { p.y = 45; p.targetY = 100 + Math.random() * 300; }
-        if (p.y > H-40) { p.y = H-45; p.targetY = 100 + Math.random() * 300; }
+        if (p.x < 30) { p.x = 35; }
+        if (p.x > W-30) { p.x = W-35; }
+        if (p.y < 40) { p.y = 45; }
+        if (p.y > H-40) { p.y = H-45; }
 
         p.x = Math.max(25, Math.min(W-25, p.x));
         p.y = Math.max(35, Math.min(H-35, p.y));
@@ -676,13 +689,14 @@
 
         ball.x += ball.vx;
         ball.y += ball.vy;
-        ball.vx *= 0.985;
-        ball.vy *= 0.985;
-        if (Math.abs(ball.vx) < 0.05) ball.vx = 0;
-        if (Math.abs(ball.vy) < 0.05) ball.vy = 0;
+        // меньше трения — мяч летит резче
+        ball.vx *= 0.99;
+        ball.vy *= 0.99;
+        if (Math.abs(ball.vx) < 0.1) ball.vx = 0;
+        if (Math.abs(ball.vy) < 0.1) ball.vy = 0;
 
-        if (ball.y < ball.r) { ball.y = ball.r; ball.vy *= -0.5; }
-        if (ball.y > H - ball.r) { ball.y = H - ball.r; ball.vy *= -0.5; }
+        if (ball.y < ball.r) { ball.y = ball.r; ball.vy *= -0.6; }
+        if (ball.y > H - ball.r) { ball.y = H - ball.r; ball.vy *= -0.6; }
 
         if (ball.x < goalA.x + goalA.w && ball.y > goalA.y && ball.y < goalA.y + goalA.h) {
             goalScored('B');
@@ -775,20 +789,13 @@
         requestAnimationFrame(loop);
     }
 
-    // ----- СОБЫТИЯ -----
+    // ----- СОБЫТИЯ МЕНЮ -----
     document.querySelectorAll('.player-card').forEach(el => {
         el.addEventListener('click', function() {
-            const idx = parseInt(this.dataset.player);
-            selectedPlayer = idx;
-            document.getElementById('menu').style.display = 'none';
-            gameState = 'playing';
-            initPlayers();
-            const p = selectedPlayer < 2 ? teamA[selectedPlayer] : teamB[selectedPlayer-2];
-            p.isPlayer = true;
-            p.color = '#ffd700';
-            allPlayers.forEach(pl => { if (pl !== p) pl.isPlayer = false; });
-            resetBall();
-            startMatch();
+            document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedPlayer = parseInt(this.dataset.player);
+            document.getElementById('startBtn').disabled = false;
         });
     });
 
@@ -799,6 +806,15 @@
             selectedDifficulty = this.dataset.diff;
             updateAchievementUI();
         });
+    });
+
+    document.getElementById('startBtn').addEventListener('click', function() {
+        if (selectedPlayer === -1) return;
+        document.getElementById('menu').style.display = 'none';
+        gameState = 'playing';
+        initPlayers();
+        resetBall();
+        startMatch();
     });
 
     canvas.addEventListener('touchstart', (e) => {
@@ -830,7 +846,6 @@
     });
 
     updateAchievementUI();
-    initPlayers();
     loop();
 </script>
 
