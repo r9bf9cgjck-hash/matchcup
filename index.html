@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Match Cup</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { 
+            background: #2e7d32; 
+            touch-action: none;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            background: #4caf50;
+            display: block;
+            border: 4px solid white;
+            border-radius: 8px;
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            max-height: 700px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="game"></canvas>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+
+        // Размеры
+        const W = 500, H = 700;
+        canvas.width = W;
+        canvas.height = H;
+
+        // Объекты
+        const player = { x: W/2, y: H-100, r: 20, color: '#1a237e' };
+        const ball = { x: W/2, y: H/2, r: 12, color: 'white' };
+        const goal = { x: W/2 - 60, y: 10, w: 120, h: 20, color: '#f44336' };
+
+        let score = 0;
+        let touchX = player.x, touchY = player.y;
+        let isTouching = false;
+
+        // Касания
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const touch = e.touches[0];
+            touchX = (touch.clientX - rect.left) * scaleX;
+            touchY = (touch.clientY - rect.top) * scaleY;
+            isTouching = true;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const touch = e.touches[0];
+            touchX = (touch.clientX - rect.left) * scaleX;
+            touchY = (touch.clientY - rect.top) * scaleY;
+        });
+
+        canvas.addEventListener('touchend', () => { isTouching = false; });
+
+        // Обновление
+        function update() {
+            // Движение игрока
+            if (isTouching) {
+                const dx = touchX - player.x;
+                const dy = touchY - player.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > 5) {
+                    const speed = 6;
+                    player.x += (dx / dist) * speed;
+                    player.y += (dy / dist) * speed;
+                }
+            }
+
+            // Границы для игрока
+            player.x = Math.max(player.r, Math.min(W - player.r, player.x));
+            player.y = Math.max(player.r, Math.min(H - player.r, player.y));
+
+            // Физика мяча (притягивается к игроку)
+            const dx = player.x - ball.x;
+            const dy = player.y - ball.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 50) {
+                const force = 0.5;
+                ball.x += (dx / dist) * force;
+                ball.y += (dy / dist) * force;
+            }
+
+            // Мяч не выходит за границы
+            ball.x = Math.max(ball.r, Math.min(W - ball.r, ball.x));
+            ball.y = Math.max(ball.r, Math.min(H - ball.r, ball.y));
+
+            // Гол
+            if (ball.x > goal.x && ball.x < goal.x + goal.w && ball.y - ball.r < goal.y + goal.h) {
+                score++;
+                ball.x = W/2 + Math.random() * 100 - 50;
+                ball.y = H/2;
+                // Сброс позиции игрока
+                player.x = W/2;
+                player.y = H - 100;
+            }
+        }
+
+        // Рисование
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
+
+            // Поле
+            ctx.fillStyle = '#4caf50';
+            ctx.fillRect(0, 0, W, H);
+
+            // Разметка (центр)
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(W/2, H/2, 60, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(W/2, 0);
+            ctx.lineTo(W/2, H);
+            ctx.stroke();
+
+            // Ворота
+            ctx.fillStyle = goal.color;
+            ctx.fillRect(goal.x, goal.y, goal.w, goal.h);
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(goal.x, goal.y, goal.w, goal.h);
+
+            // Мяч
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+            ctx.fillStyle = ball.color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Игрок
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
+            ctx.fillStyle = player.color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#0d47a1';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Счёт
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('⚽ ' + score, W/2, 45);
+        }
+
+        // Цикл
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
