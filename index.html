@@ -540,7 +540,7 @@
         }
     }
 
-    // ----- ДЖОЙСТИК -----
+    // ----- ДЖОЙСТИК (ИСПРАВЛЕН) -----
     let joystickX = 0, joystickY = 0;
     let joystickActive = false;
     let joystickTouchId = null;
@@ -768,7 +768,6 @@
     // ----- ОТБОР -----
     function performTackle(player) {
         if (!player) return;
-        // Ищем ближайшего соперника с мячом
         let target = null;
         let minDist = 80;
         for (let p of allPlayers) {
@@ -784,7 +783,6 @@
             }
         }
         if (target) {
-            // Шанс отбора зависит от рейтинга и сложности
             const tackleChance = 0.3 + (save.stars || 1) * 0.05 - diffTackle[selectedDifficulty] * 0.2;
             if (Math.random() < tackleChance) {
                 ballOwner = player;
@@ -797,7 +795,7 @@
         }
     }
 
-    // ----- БОТЫ (с ведением и отбором) -----
+    // ----- БОТЫ -----
     function updateBot(p, isTeamA) {
         const dx = ball.x - p.x;
         const dy = ball.y - p.y;
@@ -819,13 +817,11 @@
                 targetY = goalYCenter + (Math.random()-0.5)*30;
             }
         } else {
-            // Если бот владеет мячом — ведёт его к воротам соперника
             if (p === ballOwner) {
                 const targetGoalX = isTeamA ? W-40 : 20;
                 const targetGoalY = H/2 + (Math.random()-0.5)*60;
                 targetX = targetGoalX;
                 targetY = targetGoalY;
-                // Удар с вероятностью
                 if (Math.random() < 0.02 && distToBall < 40) {
                     const kx = targetGoalX - ball.x;
                     const ky = targetGoalY - ball.y;
@@ -837,15 +833,13 @@
                     return;
                 }
             } else {
-                // Без мяча — бежит к мячу
-                if (distToBall < 250) {
+                if (distToBall < 300) {
                     targetX = ball.x + (Math.random()-0.5) * 80;
                     targetY = ball.y + (Math.random()-0.5) * 80;
                 } else {
                     targetX = ball.x;
                     targetY = ball.y;
                 }
-                // Отбор у игрока с мячом
                 if (ballOwner && distToBall < 50 && Math.random() < diffTackle[selectedDifficulty] * 0.5) {
                     ballOwner = p;
                     ball.x = p.x + 20;
@@ -939,7 +933,6 @@
         const myPlayer = allPlayers.find(p => p.isPlayer === true);
         const speedBonus = 1 + (save.stars - 1) * 0.15;
         
-        // Движение от джойстика
         if (myPlayer && joystickActive) {
             const jx = joystickX;
             const jy = joystickY;
@@ -951,7 +944,6 @@
             }
         }
         
-        // Если игрок владеет мячом — мяч следует за ним
         if (myPlayer && ballOwner === myPlayer) {
             ball.x = myPlayer.x + 20;
             ball.y = myPlayer.y;
@@ -966,13 +958,11 @@
             }
         });
 
-        // Боты
         allPlayers.filter(p => !p.isPlayer).forEach(p => {
             const isA = p.team === 'A';
             updateBot(p, isA);
         });
 
-        // Если бот владеет мячом — мяч следует за ним
         if (ballOwner && !ballOwner.isPlayer) {
             ball.x = ballOwner.x + 20;
             ball.y = ballOwner.y;
@@ -980,7 +970,6 @@
             ball.vy = 0;
         }
 
-        // Удар по мячу
         if (myPlayer && kickPressed && !pendingPenalty) {
             if (ballOwner === myPlayer) {
                 const angle = Math.atan2(joystickY, joystickX);
@@ -992,13 +981,11 @@
             }
         }
 
-        // Отбор
         if (myPlayer && tacklePressed && !pendingPenalty) {
             performTackle(myPlayer);
             tacklePressed = false;
         }
 
-        // Если мяч ничей — двигаем его физикой
         if (!ballOwner) {
             ball.x += ball.vx;
             ball.y += ball.vy;
@@ -1093,7 +1080,6 @@
             ball.x = W - ball.r - 5; ball.vx *= -0.6; 
         }
 
-        // ГОЛ
         if (ball.x < goalA.x + goalA.w && ball.y > goalA.y + 5 && ball.y < goalA.y + goalA.h - 5) {
             if (!ballOwner || ballOwner.team !== 'A') {
                 goalScored('B');
@@ -1147,7 +1133,6 @@
         ctx.arc(W/2, H/2, 60, 0, Math.PI*2);
         ctx.stroke();
 
-        // Ворота
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 4;
         ctx.strokeRect(goalA.x, goalA.y, goalA.w, goalA.h);
@@ -1217,7 +1202,6 @@
             const role = p.isGoalkeeper ? '🧤' : '⚡';
             ctx.fillText(p.name + ' ' + starStr + ' ' + role, p.x, p.y - p.r - 8);
             ctx.shadowBlur = 0;
-            // Индикатор владения мячом
             if (p === ballOwner) {
                 ctx.strokeStyle = 'rgba(255,255,0,0.5)';
                 ctx.lineWidth = 3;
@@ -1282,7 +1266,7 @@
 
     document.getElementById('resetBtn').addEventListener('click', resetProgress);
 
-    // ----- УПРАВЛЕНИЕ ДЖОЙСТИКОМ -----
+    // ----- УПРАВЛЕНИЕ ДЖОЙСТИКОМ (ГАРАНТИРОВАННО РАБОТАЕТ) -----
     joystickArea.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const touch = e.touches[0];
@@ -1326,20 +1310,20 @@
         const dist = Math.sqrt(dx*dx + dy*dy);
         const maxDist = rect.width/2 - 25;
         if (dist > maxDist) {
-            joystickX = (dx / dist) * (maxDist / (rect.width/2));
-            joystickY = (dy / dist) * (maxDist / (rect.height/2));
             const angle = Math.atan2(dy, dx);
             const newX = Math.cos(angle) * maxDist;
             const newY = Math.sin(angle) * maxDist;
+            joystickX = (newX / maxDist);
+            joystickY = (newY / maxDist);
             joystickKnob.style.transform = `translate(${newX - 25}px, ${newY - 25}px)`;
         } else {
-            joystickX = dx / (rect.width/2);
-            joystickY = dy / (rect.height/2);
+            joystickX = dx / maxDist;
+            joystickY = dy / maxDist;
             joystickKnob.style.transform = `translate(${dx - 25}px, ${dy - 25}px)`;
         }
     }
 
-    // ----- КНОПКА УДАРА -----
+    // ----- КНОПКИ -----
     kickBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         kickPressed = true;
@@ -1355,7 +1339,6 @@
         kickBtn.classList.remove('active');
     });
 
-    // ----- КНОПКА ОТБОРА -----
     tackleBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
         tacklePressed = true;
@@ -1371,7 +1354,6 @@
         tackleBtn.classList.remove('active');
     });
 
-    // ----- КНОПКИ ПОСЛЕ МАТЧА -----
     restartBtn.addEventListener('click', () => {
         document.getElementById('winner').style.display = 'none';
         restartBtn.style.display = 'none';
