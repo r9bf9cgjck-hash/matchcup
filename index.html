@@ -412,7 +412,6 @@
             save = { wins: 0, goals: 0, stars: 1, achievements: {} };
             Object.keys(ACHIEVEMENTS).forEach(k => ACHIEVEMENTS[k] = false);
             updateAchievementUI();
-            // Обновляем карточки игроков
             document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
             document.getElementById('startBtn').disabled = true;
             document.querySelectorAll('.diff-btn').forEach(b => b.disabled = true);
@@ -442,8 +441,10 @@
 
     let ball = { x: W/2, y: H/2, r: 11, vx: 0, vy: 0 };
 
-    const goalA = { x: 15, y: H/2 - 65, w: 18, h: 130 };
-    const goalB = { x: W-33, y: H/2 - 65, w: 18, h: 130 };
+    // Ворота (УЗКИЕ — 90px)
+    const GOAL_HEIGHT = 90;
+    const goalA = { x: 15, y: H/2 - GOAL_HEIGHT/2, w: 18, h: GOAL_HEIGHT };
+    const goalB = { x: W-33, y: H/2 - GOAL_HEIGHT/2, w: 18, h: GOAL_HEIGHT };
 
     let touchX = W/2, touchY = H/2;
     let isTouching = false;
@@ -458,11 +459,6 @@
         const botBonus = 1 + (botStars - 1) * 0.12;
         const playerBonus = 1 + (playerStars - 1) * 0.15;
 
-        // Хабиб — полевой (всегда)
-        // Салаудин — вратарь (всегда)
-        // Шамиль Рб — полевой (всегда)
-        // Шамиль Jr — вратарь (всегда)
-
         teamA = [
             { id: 0, name: 'Хабиб', color: '#d32f2f', x: 200, y: 400, r: 22, isPlayer: false, team: 'A', isGoalkeeper: false, speed: 1.6 * (selectedPlayer === 0 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 0 ? playerBonus : botBonus) },
             { id: 1, name: 'Салаудин', color: '#e57373', x: 60, y: 400, r: 22, isPlayer: false, team: 'A', isGoalkeeper: true, speed: 1.6 * (selectedPlayer === 1 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 1 ? playerBonus : botBonus) }
@@ -473,7 +469,6 @@
         ];
 
         allPlayers = [...teamA, ...teamB];
-        // Помечаем выбранного игрока
         if (selectedPlayer >= 0) {
             let p = null;
             if (selectedPlayer < 2) p = teamA[selectedPlayer];
@@ -481,13 +476,11 @@
             if (p) {
                 p.isPlayer = true;
                 p.color = '#ffd700';
-                // Если выбрали вратаря — делаем его полевым
                 if (p.isGoalkeeper) {
                     p.isGoalkeeper = false;
                     p.x = 200 + (p.team === 'A' ? 0 : 200);
                     p.y = 400;
                 }
-                // Напарник идёт в ворота
                 const teammate = allPlayers.find(pl => pl.team === p.team && pl.id !== p.id);
                 if (teammate) {
                     teammate.isGoalkeeper = true;
@@ -628,7 +621,7 @@
         }
     }
 
-    // ----- БОТЫ (вратари + полевые) -----
+    // ----- БОТЫ (вратари выходят) -----
     function updateBot(p, isTeamA) {
         const dx = ball.x - p.x;
         const dy = ball.y - p.y;
@@ -638,21 +631,20 @@
         let targetY = p.targetY;
 
         if (p.isGoalkeeper) {
-            // Вратарь: только у своих ворот
             const goal = isTeamA ? goalA : goalB;
             const goalX = isTeamA ? 30 : W-30;
             const goalYCenter = H/2;
-            // Если мяч близко к воротам — выходит на 2–3 метра
-            if (distToBall < 200 && ball.x > goal.x - 50 && ball.x < goal.x + goal.w + 50) {
-                const offset = 40 + Math.random() * 20;
+            // Выход из ворот, если мяч близко
+            if (distToBall < 200 && ball.x > goal.x - 30 && ball.x < goal.x + goal.w + 30) {
+                const offset = 50 + Math.random() * 20;
                 targetX = isTeamA ? goal.x + goal.w + offset : goal.x - offset;
                 targetY = Math.max(goal.y + 15, Math.min(goal.y + goal.h - 15, ball.y));
             } else {
                 targetX = goalX;
-                targetY = goalYCenter + (Math.random()-0.5)*40;
+                targetY = goalYCenter + (Math.random()-0.5)*30;
             }
         } else {
-            // Полевые игроки (Хабиб и Шамиль Рб) — бегают за мячом
+            // Полевые игроки
             if (distToBall < 250 && Math.random() < 0.03) {
                 targetX = ball.x + (Math.random()-0.5) * 100;
                 targetY = ball.y + (Math.random()-0.5) * 100;
@@ -692,7 +684,7 @@
         // Границы для вратарей
         if (p.isGoalkeeper) {
             const goal = isTeamA ? goalA : goalB;
-            p.x = Math.max(goal.x - 40, Math.min(goal.x + goal.w + 40, p.x));
+            p.x = Math.max(goal.x - 50, Math.min(goal.x + goal.w + 50, p.x));
             p.y = Math.max(goal.y + 10, Math.min(goal.y + goal.h - 10, p.y));
         } else {
             p.x = Math.max(25, Math.min(W-25, p.x));
@@ -700,7 +692,7 @@
         }
     }
 
-    // ----- ОБНОВЛЕНИЕ (резкое управление) -----
+    // ----- ОБНОВЛЕНИЕ -----
     function update() {
         if (gameState !== 'playing' || !matchActive || matchEnded) return;
 
@@ -711,7 +703,6 @@
             const dy = touchY - myPlayer.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
             if (dist > 5) {
-                // РЕЗКОЕ движение (без плавности)
                 const speed = 8 * speedBonus;
                 const angle = Math.atan2(dy, dx);
                 myPlayer.x += Math.cos(angle) * speed;
@@ -756,10 +747,11 @@
         if (ball.y < ball.r) { ball.y = ball.r; ball.vy *= -0.6; }
         if (ball.y > H - ball.r) { ball.y = H - ball.r; ball.vy *= -0.6; }
 
-        if (ball.x < goalA.x + goalA.w && ball.y > goalA.y && ball.y < goalA.y + goalA.h) {
+        // ГОЛ засчитывается ТОЛЬКО если мяч полностью между стойками
+        if (ball.x < goalA.x + goalA.w && ball.y > goalA.y + 5 && ball.y < goalA.y + goalA.h - 5) {
             goalScored('B');
         }
-        if (ball.x > goalB.x - goalB.w && ball.y > goalB.y && ball.y < goalB.y + goalB.h) {
+        if (ball.x > goalB.x - goalB.w && ball.y > goalB.y + 5 && ball.y < goalB.y + goalB.h - 5) {
             goalScored('A');
         }
 
@@ -877,7 +869,6 @@
         startMatch();
     });
 
-    // Кнопка сброса
     document.getElementById('resetBtn').addEventListener('click', resetProgress);
 
     canvas.addEventListener('touchstart', (e) => {
