@@ -459,37 +459,48 @@
         const botBonus = 1 + (botStars - 1) * 0.12;
         const playerBonus = 1 + (playerStars - 1) * 0.15;
 
+        // БАЗОВЫЕ РОЛИ (кто вратарь, кто полевой)
+        // Команда А: Хабиб — полевой, Салаудин — вратарь
+        // Команда Б: Шамиль Рб — полевой, Шамиль Jr — вратарь
+        let a1role = 'field', a2role = 'goalkeeper';
+        let b1role = 'field', b2role = 'goalkeeper';
+
+        // Если выбрали Салаудина (id=1) — он становится полевым, а Хабиб — вратарём
+        if (selectedPlayer === 1) {
+            a1role = 'goalkeeper';
+            a2role = 'field';
+        }
+        // Если выбрали Шамиля Jr (id=3) — он становится полевым, а Шамиль Рб — вратарём
+        if (selectedPlayer === 3) {
+            b1role = 'goalkeeper';
+            b2role = 'field';
+        }
+
         teamA = [
-            { id: 0, name: 'Хабиб', color: '#d32f2f', x: 200, y: 400, r: 22, isPlayer: false, team: 'A', isGoalkeeper: false, speed: 1.6 * (selectedPlayer === 0 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 0 ? playerBonus : botBonus) },
-            { id: 1, name: 'Салаудин', color: '#e57373', x: 60, y: 400, r: 22, isPlayer: false, team: 'A', isGoalkeeper: true, speed: 1.6 * (selectedPlayer === 1 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 1 ? playerBonus : botBonus) }
+            { id: 0, name: 'Хабиб', color: '#d32f2f', x: 200, y: 400, r: 22, isPlayer: (selectedPlayer === 0), team: 'A', isGoalkeeper: (a1role === 'goalkeeper'), speed: 1.6 * (selectedPlayer === 0 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 0 ? playerBonus : botBonus) },
+            { id: 1, name: 'Салаудин', color: '#e57373', x: 60, y: 400, r: 22, isPlayer: (selectedPlayer === 1), team: 'A', isGoalkeeper: (a2role === 'goalkeeper'), speed: 1.6 * (selectedPlayer === 1 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 1 ? playerBonus : botBonus) }
         ];
         teamB = [
-            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 400, y: 400, r: 22, isPlayer: false, team: 'B', isGoalkeeper: false, speed: 1.6 * (selectedPlayer === 2 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 2 ? playerBonus : botBonus) },
-            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: W-60, y: 400, r: 22, isPlayer: false, team: 'B', isGoalkeeper: true, speed: 1.6 * (selectedPlayer === 3 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 3 ? playerBonus : botBonus) }
+            { id: 2, name: 'Шамиль Рб', color: '#1976d2', x: 400, y: 400, r: 22, isPlayer: (selectedPlayer === 2), team: 'B', isGoalkeeper: (b1role === 'goalkeeper'), speed: 1.6 * (selectedPlayer === 2 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 2 ? playerBonus : botBonus) },
+            { id: 3, name: 'Шамиль Jr', color: '#64b5f6', x: W-60, y: 400, r: 22, isPlayer: (selectedPlayer === 3), team: 'B', isGoalkeeper: (b2role === 'goalkeeper'), speed: 1.6 * (selectedPlayer === 3 ? playerBonus : botBonus), power: 3.5 * (selectedPlayer === 3 ? playerBonus : botBonus) }
         ];
 
         allPlayers = [...teamA, ...teamB];
-        if (selectedPlayer >= 0) {
-            let p = null;
-            if (selectedPlayer < 2) p = teamA[selectedPlayer];
-            else p = teamB[selectedPlayer - 2];
-            if (p) {
-                p.isPlayer = true;
+        // Если игрок вратарь — ставим его к воротам
+        allPlayers.forEach(p => {
+            if (p.isGoalkeeper && !p.isPlayer) {
+                p.x = (p.team === 'A') ? 60 : W-60;
+                p.y = H/2;
+            }
+            if (p.isPlayer) {
                 p.color = '#ffd700';
+                // Если игрок вратарь — делаем его полевым
                 if (p.isGoalkeeper) {
                     p.isGoalkeeper = false;
                     p.x = 200 + (p.team === 'A' ? 0 : 200);
                     p.y = 400;
                 }
-                const teammate = allPlayers.find(pl => pl.team === p.team && pl.id !== p.id);
-                if (teammate) {
-                    teammate.isGoalkeeper = true;
-                    teammate.x = (p.team === 'A') ? 60 : W-60;
-                    teammate.y = H/2;
-                }
             }
-        }
-        allPlayers.forEach(p => {
             if (!p.isPlayer) {
                 p.targetX = p.x + (Math.random()-0.5)*100;
                 p.targetY = p.y + (Math.random()-0.5)*100;
@@ -621,7 +632,7 @@
         }
     }
 
-    // ----- БОТЫ (вратари выходят) -----
+    // ----- БОТЫ (вратари выходят ВПЕРЁД, полевые атакуют) -----
     function updateBot(p, isTeamA) {
         const dx = ball.x - p.x;
         const dy = ball.y - p.y;
@@ -634,9 +645,9 @@
             const goal = isTeamA ? goalA : goalB;
             const goalX = isTeamA ? 30 : W-30;
             const goalYCenter = H/2;
-            // Выход из ворот, если мяч близко
+            // ВЫХОД ВПЕРЁД (по оси X), а не вбок
             if (distToBall < 200 && ball.x > goal.x - 30 && ball.x < goal.x + goal.w + 30) {
-                const offset = 50 + Math.random() * 20;
+                const offset = 60 + Math.random() * 30;
                 targetX = isTeamA ? goal.x + goal.w + offset : goal.x - offset;
                 targetY = Math.max(goal.y + 15, Math.min(goal.y + goal.h - 15, ball.y));
             } else {
@@ -644,16 +655,16 @@
                 targetY = goalYCenter + (Math.random()-0.5)*30;
             }
         } else {
-            // Полевые игроки
-            if (distToBall < 250 && Math.random() < 0.03) {
-                targetX = ball.x + (Math.random()-0.5) * 100;
-                targetY = ball.y + (Math.random()-0.5) * 100;
+            // ПОЛЕВЫЕ ИГРОКИ (нападают)
+            if (distToBall < 250) {
+                targetX = ball.x + (Math.random()-0.5) * 80;
+                targetY = ball.y + (Math.random()-0.5) * 80;
+            } else {
+                targetX = ball.x;
+                targetY = ball.y;
             }
-            if (distToBall > 300) {
-                targetX = ball.x + (Math.random()-0.5) * 70;
-                targetY = ball.y + (Math.random()-0.5) * 70;
-            }
-            if (distToBall < 35 && Math.random() < 0.07) {
+            // Удар по воротам
+            if (distToBall < 35 && Math.random() < 0.08) {
                 const targetGoalX = isTeamA ? W-40 : 20;
                 const targetGoalY = H/2 + (Math.random()-0.5)*80;
                 const kx = targetGoalX - ball.x;
@@ -684,7 +695,7 @@
         // Границы для вратарей
         if (p.isGoalkeeper) {
             const goal = isTeamA ? goalA : goalB;
-            p.x = Math.max(goal.x - 50, Math.min(goal.x + goal.w + 50, p.x));
+            p.x = Math.max(goal.x - 60, Math.min(goal.x + goal.w + 60, p.x));
             p.y = Math.max(goal.y + 10, Math.min(goal.y + goal.h - 10, p.y));
         } else {
             p.x = Math.max(25, Math.min(W-25, p.x));
@@ -747,7 +758,7 @@
         if (ball.y < ball.r) { ball.y = ball.r; ball.vy *= -0.6; }
         if (ball.y > H - ball.r) { ball.y = H - ball.r; ball.vy *= -0.6; }
 
-        // ГОЛ засчитывается ТОЛЬКО если мяч полностью между стойками
+        // ГОЛ ТОЛЬКО МЕЖДУ СТОЙКАМИ
         if (ball.x < goalA.x + goalA.w && ball.y > goalA.y + 5 && ball.y < goalA.y + goalA.h - 5) {
             goalScored('B');
         }
