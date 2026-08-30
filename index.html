@@ -1,1377 +1,674 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>⚽ Match Cup 2v2 PRO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎡 Колесо Апгрейдер</title>
     <style>
-        * { margin: 0; padding: 0; touch-action: none; user-select: none; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
         body {
-            background: #0a0a1a;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            overflow: hidden;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 16px;
         }
-        #game-wrapper {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            max-width: 500px;
-            max-height: 850px;
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 0 60px rgba(0,200,255,0.15);
-        }
-        canvas {
-            background: #1a472a;
-            display: block;
+        .game-container {
+            max-width: 800px;
             width: 100%;
-            height: 100%;
-            touch-action: none;
+            background: rgba(20, 20, 50, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            padding: 30px 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
         }
-        
-        /* ---- МЕНЮ ---- */
-        #menu {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(8, 8, 28, 0.92);
-            backdrop-filter: blur(12px);
-            z-index: 10;
-            color: white;
-            padding: 20px 18px;
-            display: flex;
-            flex-direction: column;
-            border-radius: 24px;
-            overflow-y: auto;
-        }
-        #menu::-webkit-scrollbar { width: 3px; }
-        #menu::-webkit-scrollbar-thumb { background: #ffd700; border-radius: 10px; }
-        
-        .menu-header {
+        .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 6px;
+            margin-bottom: 20px;
+            color: #fff;
+            padding: 0 8px;
         }
-        .menu-header h1 {
-            font-size: 2rem;
+        .coins {
+            font-size: 1.8rem;
+            font-weight: 700;
             background: linear-gradient(135deg, #f7971e, #ffd200);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
         }
-        .menu-stars {
-            background: rgba(255,215,0,0.15);
-            padding: 4px 14px;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            border: 1px solid rgba(255,215,0,0.3);
-        }
-        
-        .tabs {
-            display: flex;
-            gap: 6px;
-            margin: 10px 0 12px 0;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 8px 0;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 30px;
+        .coins span {
+            font-size: 1.2rem;
             color: #aaa;
-            font-weight: bold;
-            font-size: 0.75rem;
+            -webkit-text-fill-color: #aaa;
+        }
+        .wheel-wrapper {
+            position: relative;
+            margin: 20px auto;
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1;
+        }
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.2), 0 0 80px rgba(255, 215, 0, 0.1);
+            background: #1a1a3e;
+            padding: 12px;
+        }
+        canvas#wheelCanvas {
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 50%;
+            display: block;
             cursor: pointer;
-            transition: 0.3s;
-            text-align: center;
+            transition: filter 0.3s;
         }
-        .tab-btn.active {
-            background: rgba(255,215,0,0.15);
-            border-color: #ffd700;
-            color: #ffd700;
+        canvas#wheelCanvas:hover {
+            filter: brightness(1.05);
         }
-        .tab-content { display: none; flex-direction: column; gap: 10px; flex: 1; }
-        .tab-content.active { display: flex; }
-        
-        .players-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+        .pointer {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.8));
+            z-index: 10;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
         }
-        .player-card {
-            background: rgba(255,255,255,0.04);
-            border: 2px solid rgba(255,255,255,0.08);
-            border-radius: 16px;
-            padding: 10px 6px;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.25s;
-        }
-        .player-card:active { transform: scale(0.94); }
-        .player-card .emoji { font-size: 1.8rem; display: block; margin-bottom: 2px; }
-        .player-card .pname { font-size: 0.8rem; font-weight: 600; }
-        .player-card .prole { font-size: 0.6rem; color: #888; }
-        .player-card.selected { border-color: #ffd700; background: rgba(255,215,0,0.12); box-shadow: 0 0 30px rgba(255,215,0,0.08); }
-        
-        .difficulty-wrap {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin: 4px 0;
-        }
-        .diff-btn {
-            padding: 6px 14px;
-            border-radius: 30px;
-            border: 2px solid rgba(255,255,255,0.1);
-            background: transparent;
-            color: #aaa;
-            font-size: 0.7rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .diff-btn.active { border-color: #ffd700; color: #ffd700; background: rgba(255,215,0,0.1); }
-        .diff-btn:disabled { opacity: 0.2; cursor: not-allowed; }
-        
-        #startBtn {
+        .spin-btn {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
             background: linear-gradient(135deg, #f7971e, #ffd200);
             border: none;
-            padding: 14px;
             border-radius: 50px;
-            font-size: 1.1rem;
+            padding: 14px 32px;
+            font-size: 1.3rem;
             font-weight: 800;
-            color: #1a1a2e;
+            color: #1a1a3e;
             cursor: pointer;
-            margin-top: 6px;
-            transition: 0.2s;
-            box-shadow: 0 4px 30px rgba(255,215,0,0.2);
+            box-shadow: 0 8px 0 #b37b1a, 0 12px 30px rgba(255, 215, 0, 0.3);
+            transition: all 0.08s linear;
+            z-index: 10;
+            letter-spacing: 1px;
+            border: 2px solid rgba(255,255,255,0.3);
         }
-        #startBtn:active { transform: scale(0.95); }
-        #startBtn:disabled { opacity: 0.3; transform: none; box-shadow: none; }
-        
-        .achieve-list {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px 10px;
-            font-size: 0.7rem;
-            color: #aaa;
-            margin: 4px 0;
+        .spin-btn:active {
+            transform: translateX(-50%) translateY(6px);
+            box-shadow: 0 2px 0 #b37b1a;
         }
-        .achieve-list .done { color: #4caf50; }
-        .achieve-list .not-done { color: #444; }
-        
-        .stats-row {
-            display: flex;
-            justify-content: space-around;
-            background: rgba(255,255,255,0.04);
-            border-radius: 16px;
-            padding: 10px;
-            margin: 4px 0;
+        .spin-btn:disabled {
+            opacity: 0.5;
+            transform: translateX(-50%) translateY(4px);
+            box-shadow: 0 4px 0 #b37b1a;
+            cursor: not-allowed;
+        }
+        .result-popup {
+            text-align: center;
+            margin: 16px 0 10px;
+            min-height: 50px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            transition: all 0.3s;
+        }
+        .upgrades-section {
+            margin-top: 24px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 24px;
+            padding: 20px;
             border: 1px solid rgba(255,255,255,0.05);
         }
-        .stats-row div { text-align: center; font-size: 0.75rem; color: #aaa; }
-        .stats-row span { display: block; font-size: 1.4rem; font-weight: bold; color: #fff; }
-        .stats-row .gold { color: #ffd700; }
-        
-        .info-footer {
-            font-size: 0.6rem;
-            color: #555;
-            text-align: center;
-            margin-top: 8px;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            padding-top: 8px;
-        }
-        #resetBtn {
-            background: rgba(255,50,50,0.15);
-            border: 1px solid rgba(255,50,50,0.2);
-            color: #ff6b6b;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.6rem;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        #resetBtn:active { transform: scale(0.9); background: rgba(255,50,50,0.3); }
-
-        /* ---- ИГРОВОЙ HUD ---- */
-        #hud {
-            position: absolute;
-            top: 8px;
-            left: 0;
-            width: 100%;
-            padding: 0 12px;
-            display: none;
-            justify-content: space-between;
-            z-index: 5;
-            pointer-events: none;
-            box-sizing: border-box;
-        }
-        #hud > div {
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
-            padding: 4px 14px;
-            border-radius: 30px;
-            font-weight: bold;
-            color: white;
-            font-size: 1rem;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        #hud .score-a { color: #ff6b6b; }
-        #hud .score-b { color: #4dabf7; }
-        #timer-hud {
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
-            padding: 4px 16px;
-            border-radius: 30px;
-            color: #ffd700;
-            font-weight: bold;
-            font-size: 1rem;
-            border: 1px solid rgba(255,215,0,0.15);
-        }
-        #matchScore {
-            position: absolute;
-            bottom: 100px;
-            left: 0; width: 100%;
-            text-align: center;
-            color: rgba(255,255,255,0.6);
-            font-size: 0.8rem;
-            z-index: 5;
-            pointer-events: none;
-            text-shadow: 0 2px 20px black;
-        }
-        
-        /* ---- КНОПКИ УПРАВЛЕНИЯ ---- */
-        #joystick-area {
-            position: absolute;
-            bottom: 20px;
-            left: 16px;
-            width: 110px;
-            height: 110px;
-            border-radius: 55px;
-            background: rgba(255,255,255,0.06);
-            border: 2px solid rgba(255,255,255,0.12);
-            z-index: 8;
-            display: none;
-            touch-action: none;
-            backdrop-filter: blur(4px);
-        }
-        #joystick-knob {
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 44px; height: 44px;
-            border-radius: 22px;
-            background: radial-gradient(circle, rgba(255,255,255,0.5), rgba(255,255,255,0.1));
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            box-shadow: 0 0 40px rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        #action-btns {
-            position: absolute;
-            bottom: 28px;
-            right: 16px;
-            display: none;
-            flex-direction: column;
-            gap: 12px;
-            z-index: 8;
-        }
-        .action-btn {
-            width: 64px; height: 64px;
-            border-radius: 32px;
-            border: 3px solid rgba(255,255,255,0.15);
-            color: white;
-            font-size: 0.55rem;
-            font-weight: bold;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: 0.08s;
-            touch-action: none;
-            backdrop-filter: blur(4px);
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            line-height: 1.2;
-            box-shadow: 0 4px 30px rgba(0,0,0,0.3);
-        }
-        .action-btn:active { transform: scale(0.88); }
-        .action-btn .icon { font-size: 1.2rem; }
-        #kick-btn { background: rgba(255,215,0,0.2); border-color: rgba(255,215,0,0.3); }
-        #kick-btn.active { background: rgba(255,215,0,0.5); border-color: #ffd700; }
-        #tackle-btn { background: rgba(0,150,255,0.2); border-color: rgba(0,150,255,0.3); }
-        #tackle-btn.active { background: rgba(0,150,255,0.5); border-color: #4dabf7; }
-        #sprint-btn { background: rgba(255,100,200,0.2); border-color: rgba(255,100,200,0.3); width: 50px; height: 50px; border-radius: 25px; font-size: 0.5rem; }
-        #sprint-btn.active { background: rgba(255,100,200,0.5); border-color: #ff6bcd; }
-
-        /* ---- ПОБЕДА / КОНЕЦ ---- */
-        #winner {
-            position: absolute;
-            top: 25%; left: 0; width: 100%;
-            text-align: center;
-            z-index: 20;
-            display: none;
-            pointer-events: none;
-            background: rgba(0,0,0,0.75);
-            backdrop-filter: blur(8px);
-            padding: 30px 20px;
-            border-radius: 30px;
-            color: #ffd700;
-        }
-        #winner .cup { font-size: 4rem; display: block; }
-        #winner .sub { font-size: 0.9rem; color: #aaa; margin-top: 4px; }
-        #restartBtn, #menuBtn {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 28px;
-            border-radius: 50px;
-            border: none;
-            font-weight: bold;
+        .upgrades-title {
+            color: #aaa;
             font-size: 0.9rem;
-            z-index: 30;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .upgrade-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        .upgrade-card {
+            background: rgba(30, 30, 70, 0.6);
+            border-radius: 16px;
+            padding: 14px 16px;
+            border: 1px solid rgba(255,255,255,0.06);
+            transition: all 0.2s;
+        }
+        .upgrade-card:hover {
+            border-color: rgba(255, 215, 0, 0.2);
+            background: rgba(40, 40, 90, 0.6);
+        }
+        .upgrade-name {
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .upgrade-desc {
+            color: #888;
+            font-size: 0.8rem;
+            margin: 4px 0 8px;
+        }
+        .upgrade-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+        .upgrade-btn {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #2d2d6b, #1a1a3e);
+            color: #888;
+            font-weight: 600;
             cursor: pointer;
-            display: none;
-            transition: 0.15s;
+            transition: all 0.2s;
+            border: 1px solid rgba(255,255,255,0.05);
         }
-        #restartBtn:active, #menuBtn:active { transform: translateX(-50%) scale(0.94); }
-        #restartBtn { bottom: 100px; background: linear-gradient(135deg, #f7971e, #ffd200); color: #1a1a2e; }
-        #menuBtn { bottom: 40px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.15); color: #fff; }
-        
-        #achievement-popup {
-            position: absolute;
-            top: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(10px);
-            padding: 10px 24px;
-            border-radius: 30px;
-            color: #ffd700;
-            font-size: 0.85rem;
-            z-index: 15;
-            display: none;
-            border: 2px solid #ffd700;
-            white-space: nowrap;
-            box-shadow: 0 0 60px rgba(255,215,0,0.1);
-            pointer-events: none;
+        .upgrade-btn.buyable {
+            background: linear-gradient(135deg, #f7971e, #ffd200);
+            color: #1a1a3e;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
         }
-        #power-indicator {
-            position: absolute;
-            bottom: 180px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120px;
-            height: 8px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            z-index: 6;
-            display: none;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
+        .upgrade-btn.buyable:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.3);
         }
-        #power-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #4caf50, #ffd700, #ff1744);
-            border-radius: 10px;
-            transition: width 0.02s;
+        .upgrade-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
         }
-        .float-text {
-            position: absolute;
-            font-weight: 900;
-            font-size: 1.8rem;
-            color: #ffd700;
-            text-shadow: 0 0 40px rgba(255,215,0,0.5);
-            pointer-events: none;
-            z-index: 7;
-            animation: floatUp 1s forwards;
+        .reset-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #666;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            margin-top: 16px;
         }
-        @keyframes floatUp {
-            0% { opacity: 1; transform: translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateY(-80px) scale(1.3); }
+        .reset-btn:hover {
+            border-color: #888;
+            color: #aaa;
         }
-        .hidden { display: none !important; }
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+        }
+        @media (max-width: 500px) {
+            .upgrade-grid { grid-template-columns: 1fr; }
+            .coins { font-size: 1.4rem; }
+        }
     </style>
 </head>
 <body>
-<div id="game-wrapper">
-    <canvas id="gameCanvas" width="500" height="800"></canvas>
+<div class="game-container">
+    <!-- Верхняя панель -->
+    <div class="header">
+        <div class="coins">🪙 <span id="coinDisplay">100</span></div>
+        <div style="color:#888; font-size:0.9rem;">⚡ <span id="luckDisplay">1.0</span>x</div>
+    </div>
 
-    <!-- МЕНЮ -->
-    <div id="menu">
-        <div class="menu-header">
-            <h1>⚽ MATCH CUP</h1>
-            <div class="menu-stars" id="menuStars">⭐ 1</div>
-        </div>
-        
-        <div class="tabs">
-            <div class="tab-btn active" data-tab="players">👤 Игроки</div>
-            <div class="tab-btn" data-tab="achievements">🏆 Достижения</div>
-            <div class="tab-btn" data-tab="stats">📊 Статистика</div>
-        </div>
-        
-        <!-- Вкладка Игроки -->
-        <div class="tab-content active" id="tab-players">
-            <div style="font-size:0.7rem; color:#888; text-align:center;">Выбери своего бойца</div>
-            <div class="players-grid">
-                <div class="player-card" data-player="0"><span class="emoji">⚔️</span><div class="pname">Хабиб</div><div class="prole">Поле</div></div>
-                <div class="player-card" data-player="1"><span class="emoji">🧤</span><div class="pname">Салаудин</div><div class="prole">Вратарь</div></div>
-                <div class="player-card" data-player="2"><span class="emoji">🛡️</span><div class="pname">Шамиль Рб</div><div class="prole">Поле</div></div>
-                <div class="player-card" data-player="3"><span class="emoji">🧤</span><div class="pname">Шамиль Jr</div><div class="prole">Вратарь</div></div>
-            </div>
-            <div style="font-size:0.7rem; color:#888; text-align:center; margin-top:4px;">Сложность</div>
-            <div class="difficulty-wrap">
-                <button class="diff-btn" data-diff="easy" disabled>🟢 Лёгкий</button>
-                <button class="diff-btn" data-diff="medium" disabled>🟡 Средний</button>
-                <button class="diff-btn" data-diff="hard" disabled>🔴 Сложный</button>
-                <button class="diff-btn" data-diff="extreme" disabled>🔥 Хардкор</button>
-            </div>
-            <button id="startBtn" disabled>▶️ НАЧАТЬ МАТЧ</button>
-            <div class="info-footer">👆 Хабиб и Шамиль Рб — полевые, Салаудин и Шамиль Jr — вратари</div>
-        </div>
-        
-        <!-- Вкладка Достижения -->
-        <div class="tab-content" id="tab-achievements">
-            <div style="font-size:0.8rem; color:#aaa; margin-bottom:4px;">🏅 Прогресс</div>
-            <div class="achieve-list">
-                <div id="ach1">⚽ Первый гол: ❌</div>
-                <div id="ach2">🎯 Хет-трик: ❌</div>
-                <div id="ach3">🏆 Первая победа: ❌</div>
-                <div id="ach4">👑 Чемпион (5): ❌</div>
-                <div id="ach5">💪 Машина (10): ❌</div>
-            </div>
-            <div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
-                <button id="resetBtn" style="width:100%; padding:8px;">🗑️ Сбросить прогресс</button>
-            </div>
-        </div>
-        
-        <!-- Вкладка Статистика -->
-        <div class="tab-content" id="tab-stats">
-            <div class="stats-row">
-                <div>🏆 Побед <span id="statWins">0</span></div>
-                <div>⚽ Голов <span id="statGoals">0</span></div>
-                <div>⭐ Звёзд <span id="statStars" class="gold">1</span></div>
-            </div>
-            <div style="font-size:0.7rem; color:#555; text-align:center; margin-top:6px;">Играй и открывай достижения, чтобы получать звёзды!</div>
+    <!-- Колесо -->
+    <div class="wheel-wrapper">
+        <div class="wheel-container">
+            <canvas id="wheelCanvas" width="600" height="600"></canvas>
+            <div class="pointer">▼</div>
+            <button class="spin-btn" id="spinBtn">🎡 КРУТИТЬ</button>
         </div>
     </div>
 
-    <!-- ИГРОВОЙ HUD -->
-    <div id="hud">
-        <div class="score-a" id="scoreA">0</div>
-        <div id="timer-hud">⏱️ 1:00</div>
-        <div class="score-b" id="scoreB">0</div>
-    </div>
-    <div id="matchScore">⚽ 0 : 0</div>
-    <div id="power-indicator"><div id="power-fill"></div></div>
-    <div id="achievement-popup">🏅 ДОСТИЖЕНИЕ!</div>
-    
-    <div id="winner"><span class="cup">🏆</span><div id="winnerText">ПОБЕДА!</div><div class="sub" id="winnerSub"></div></div>
-    <button id="restartBtn">🔁 Играть снова</button>
-    <button id="menuBtn">🏠 В меню</button>
+    <!-- Результат -->
+    <div class="result-popup" id="resultPopup">👉 Нажми на колесо или кнопку</div>
 
-    <!-- Управление -->
-    <div id="joystick-area"><div id="joystick-knob"></div></div>
-    <div id="action-btns">
-        <div class="action-btn" id="tackle-btn"><span class="icon">⚔️</span>Отбор</div>
-        <div class="action-btn" id="kick-btn"><span class="icon">⚽</span>Удар</div>
-        <div class="action-btn" id="sprint-btn"><span class="icon">💨</span>Рывок</div>
+    <!-- Апгрейды -->
+    <div class="upgrades-section">
+        <div class="upgrades-title">⬆️ УЛУЧШЕНИЯ КОЛЕСА</div>
+        <div class="upgrade-grid" id="upgradeGrid">
+            <!-- Карточки апгрейдов генерируются JS -->
+        </div>
+        <div class="footer">
+            <button class="reset-btn" id="resetBtn">⟳ сбросить</button>
+            <span style="color:#444; font-size:0.7rem;">v2.0 · удача</span>
+        </div>
     </div>
 </div>
 
 <script>
-    // ============================================================
-    //  MATCH CUP 2v2 — УЛУЧШЕННАЯ ВЕРСИЯ
-    // ============================================================
-    
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const W = 500, H = 800;
-    canvas.width = W; canvas.height = H;
-    
-    // ---- DOM ----
-    const menu = document.getElementById('menu');
-    const hud = document.getElementById('hud');
-    const joystickArea = document.getElementById('joystick-area');
-    const joystickKnob = document.getElementById('joystick-knob');
-    const kickBtn = document.getElementById('kick-btn');
-    const tackleBtn = document.getElementById('tackle-btn');
-    const sprintBtn = document.getElementById('sprint-btn');
-    const restartBtn = document.getElementById('restartBtn');
-    const menuBtn = document.getElementById('menuBtn');
-    const powerFill = document.getElementById('power-fill');
-    const powerIndicator = document.getElementById('power-indicator');
-    const achievementPopup = document.getElementById('achievement-popup');
-    
-    // ---- СОХРАНЕНИЕ ----
-    function loadSave() {
-        try {
-            const data = localStorage.getItem('matchcup_save_v2');
-            if (data) {
-                const s = JSON.parse(data);
-                return s;
-            }
-        } catch(e) {}
-        return { wins: 0, goals: 0, stars: 1, achievements: {} };
-    }
-    function saveGame(s) {
-        localStorage.setItem('matchcup_save_v2', JSON.stringify(s));
-    }
-    let save = loadSave();
-    const ACHIEVEMENTS = {
-        firstGoal: false,
-        hatTrick: false,
-        firstWin: false,
-        champion: false,
-        machine: false
-    };
-    if (save.achievements) Object.assign(ACHIEVEMENTS, save.achievements);
-    
-    function updateUI() {
-        document.getElementById('menuStars').innerText = '⭐ ' + (save.stars || 1);
-        document.getElementById('statWins').innerText = save.wins || 0;
-        document.getElementById('statGoals').innerText = save.goals || 0;
-        document.getElementById('statStars').innerText = save.stars || 1;
-        const achMap = { firstGoal:'ach1', hatTrick:'ach2', firstWin:'ach3', champion:'ach4', machine:'ach5' };
-        const labels = { firstGoal:'⚽ Первый гол', hatTrick:'🎯 Хет-трик', firstWin:'🏆 Первая победа', champion:'👑 Чемпион (5)', machine:'💪 Машина (10)' };
-        for (let k in achMap) {
-            const el = document.getElementById(achMap[k]);
-            if (el) {
-                el.innerText = labels[k] + (ACHIEVEMENTS[k] ? ' ✅' : ' ❌');
-                el.className = ACHIEVEMENTS[k] ? 'done' : 'not-done';
-            }
-        }
-    }
-    updateUI();
-    
-    let selectedPlayer = -1;
-    let selectedDifficulty = 'easy';
-    const diffStars = { easy:2, medium:3, hard:4, extreme:5 };
-    const diffSpeed = { easy:0.9, medium:1.3, hard:1.7, extreme:2.2 };
-    const diffTackle = { easy:0.2, medium:0.4, hard:0.6, extreme:0.8 };
-    
-    // ---- ДЖОЙСТИК ----
-    let joystickX = 0, joystickY = 0, joystickActive = false, joystickTouchId = null;
-    let sprintActive = false, sprintTimer = 0;
-    let kickPressed = false, tacklePressed = false;
-    let powerCharge = 0, isCharging = false;
-    
-    // ---- ИГРОВЫЕ ПЕРЕМЕННЫЕ ----
-    let gameState = 'menu';
-    let matchActive = false, matchEnded = false;
-    let scoreA = 0, scoreB = 0;
-    let timeLeft = 60;
-    let timerInterval = null;
-    let pendingPenalty = false;
-    let penaltyShotsA=0, penaltyShotsB=0, penaltyGoalsA=0, penaltyGoalsB=0;
-    let penaltyShooter = 'A';
-    let totalPenaltyShots = 3;
-    
-    let ball = { x:W/2, y:H/2, r:10, vx:0, vy:0, spin:0 };
-    let ballOwner = null;
-    let allPlayers = [];
-    let teamA = [], teamB = [];
-    let floatTexts = [];
-    
-    const GOAL_HEIGHT = 58;
-    const goalA = { x:18, y:H/2 - GOAL_HEIGHT/2, w:16, h:GOAL_HEIGHT };
-    const goalB = { x:W-34, y:H/2 - GOAL_HEIGHT/2, w:16, h:GOAL_HEIGHT };
-    const CORNER_RADIUS = 30;
-    
-    // ---- ВИБРАЦИЯ ----
-    function vibrate(ms=20) {
-        if (navigator.vibrate) navigator.vibrate(ms);
-    }
-    
-    // ---- FLOAT TEXT ----
-    function addFloatText(x, y, text, color='#ffd700') {
-        floatTexts.push({ x, y, text, color, life:60, maxLife:60 });
-    }
-    
-    // ---- ДОСТИЖЕНИЯ ----
-    function checkAchievements() {
-        let changed = false;
-        if (!ACHIEVEMENTS.firstGoal && save.goals >= 1) {
-            ACHIEVEMENTS.firstGoal = true; save.stars = Math.min(5, save.stars+1); changed=true;
-            showAchievement('⚽ Первый гол! +1 ⭐');
-        }
-        if (!ACHIEVEMENTS.hatTrick && save.goals >= 3) {
-            ACHIEVEMENTS.hatTrick = true; save.stars = Math.min(5, save.stars+1); changed=true;
-            showAchievement('🎯 Хет-трик! +1 ⭐');
-        }
-        if (!ACHIEVEMENTS.firstWin && save.wins >= 1) {
-            ACHIEVEMENTS.firstWin = true; save.stars = Math.min(5, save.stars+1); changed=true;
-            showAchievement('🏆 Первая победа! +1 ⭐');
-        }
-        if (!ACHIEVEMENTS.champion && save.wins >= 5) {
-            ACHIEVEMENTS.champion = true; save.stars = Math.min(5, save.stars+1); changed=true;
-            showAchievement('👑 Чемпион! +1 ⭐');
-        }
-        if (!ACHIEVEMENTS.machine && save.goals >= 10) {
-            ACHIEVEMENTS.machine = true; save.stars = Math.min(5, save.stars+1); changed=true;
-            showAchievement('💪 Машина! +1 ⭐');
-        }
-        if (changed) {
-            save.achievements = ACHIEVEMENTS;
-            saveGame(save);
-            updateUI();
-        }
-    }
-    
-    let achTimeout = null;
-    function showAchievement(text) {
-        achievementPopup.innerText = '🏅 ' + text;
-        achievementPopup.style.display = 'block';
-        if (achTimeout) clearTimeout(achTimeout);
-        achTimeout = setTimeout(() => { achievementPopup.style.display = 'none'; }, 2800);
-        vibrate(30);
-    }
-    
-    function resetProgress() {
-        if (confirm('Удалить весь прогресс?')) {
-            localStorage.removeItem('matchcup_save_v2');
-            save = { wins:0, goals:0, stars:1, achievements:{} };
-            Object.keys(ACHIEVEMENTS).forEach(k => ACHIEVEMENTS[k]=false);
-            updateUI();
-            document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById('startBtn').disabled = true;
-            document.querySelectorAll('.diff-btn').forEach(b => b.disabled = true);
-            selectedPlayer = -1;
-            alert('Прогресс сброшен!');
-        }
-    }
-    
-    // ---- ИНИЦИАЛИЗАЦИЯ ИГРОКОВ ----
-    function initPlayers() {
-        const pStars = save.stars || 1;
-        const bStars = diffStars[selectedDifficulty] || 2;
-        const bSpeed = diffSpeed[selectedDifficulty] || 1.0;
-        const pBonus = 1 + (pStars-1)*0.12;
-        const bBonus = 1 + (bStars-1)*0.10;
-        
-        let a1role = 'field', a2role = 'goalkeeper';
-        let b1role = 'field', b2role = 'goalkeeper';
-        if (selectedPlayer === 1) { a1role='goalkeeper'; a2role='field'; }
-        if (selectedPlayer === 3) { b1role='goalkeeper'; b2role='field'; }
-        
-        teamA = [
-            { id:0, name:'Хабиб', color:'#e74c3c', x:180, y:400, r:20, isPlayer:(selectedPlayer===0), team:'A', 
-              isGoalkeeper:(a1role==='goalkeeper'), speed:1.5*(selectedPlayer===0?pBonus:bBonus), power:3.2*(selectedPlayer===0?pBonus:bBonus), stamina:100, maxStamina:100 },
-            { id:1, name:'Салаудин', color:'#ff6b6b', x:60, y:400, r:20, isPlayer:(selectedPlayer===1), team:'A',
-              isGoalkeeper:(a2role==='goalkeeper'), speed:1.5*(selectedPlayer===1?pBonus:bBonus), power:3.2*(selectedPlayer===1?pBonus:bBonus), stamina:100, maxStamina:100 }
+    (function() {
+        // ====== КОНФИГ ======
+        const SEGMENTS = [
+            { label: '10', value: 10, color: '#ff6b6b' },
+            { label: '20', value: 20, color: '#feca57' },
+            { label: '5', value: 5, color: '#48dbfb' },
+            { label: '50', value: 50, color: '#ff9ff3' },
+            { label: 'x2', value: 'x2', color: '#54a0ff' },
+            { label: '0', value: 0, color: '#5f27cd' },
+            { label: '30', value: 30, color: '#1dd1a1' },
+            { label: 'x3', value: 'x3', color: '#f368e0' },
         ];
-        teamB = [
-            { id:2, name:'Шамиль Рб', color:'#1976d2', x:320, y:400, r:20, isPlayer:(selectedPlayer===2), team:'B',
-              isGoalkeeper:(b1role==='goalkeeper'), speed:1.5*(selectedPlayer===2?pBonus:bBonus), power:3.2*(selectedPlayer===2?pBonus:bBonus), stamina:100, maxStamina:100 },
-            { id:3, name:'Шамиль Jr', color:'#64b5f6', x:W-60, y:400, r:20, isPlayer:(selectedPlayer===3), team:'B',
-              isGoalkeeper:(b2role==='goalkeeper'), speed:1.5*(selectedPlayer===3?pBonus:bBonus), power:3.2*(selectedPlayer===3?pBonus:bBonus), stamina:100, maxStamina:100 }
-        ];
-        allPlayers = [...teamA, ...teamB];
-        allPlayers.forEach(p => {
-            if (p.isGoalkeeper && !p.isPlayer) {
-                p.x = p.team==='A' ? 50 : W-50;
-                p.y = H/2;
-            }
-            if (p.isPlayer) {
-                p.color = '#ffd700';
-                if (p.isGoalkeeper) { p.isGoalkeeper=false; p.x = 180 + (p.team==='A'?0:140); p.y=400; }
-            }
-            if (!p.isPlayer) {
-                p.targetX = 100 + Math.random()*300;
-                p.targetY = 100 + Math.random()*500;
-            }
-            p.stamina = p.maxStamina;
-        });
-        ballOwner = null;
-        resetBall();
-        floatTexts = [];
-    }
-    
-    function resetBall() {
-        ball.x = W/2 + (Math.random()-0.5)*60;
-        ball.y = H/2 + (Math.random()-0.5)*60;
-        ball.vx = 0; ball.vy = 0; ball.spin = 0;
-        ballOwner = null;
-    }
-    
-    // ---- МАТЧ ----
-    function startMatch() {
-        if (matchActive) return;
-        matchActive = true; matchEnded = false; pendingPenalty = false;
-        scoreA = 0; scoreB = 0; timeLeft = 60;
-        document.getElementById('scoreA').innerText = '0';
-        document.getElementById('scoreB').innerText = '0';
-        document.getElementById('timer-hud').innerText = '⏱️ 1:00';
-        document.getElementById('matchScore').innerText = '⚽ 0 : 0';
-        document.getElementById('winner').style.display = 'none';
-        restartBtn.style.display = 'none';
-        menuBtn.style.display = 'none';
-        resetBall();
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            timeLeft--;
-            const m = Math.floor(timeLeft/60);
-            const s = timeLeft%60;
-            document.getElementById('timer-hud').innerText = `⏱️ ${m}:${s<10?'0':''}${s}`;
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                timerInterval = null;
-                endMatch();
-            }
-        }, 1000);
-        vibrate(10);
-    }
-    
-    function endMatch() {
-        matchActive = false; matchEnded = true;
-        let winner = null;
-        if (scoreA > scoreB) winner='A';
-        else if (scoreB > scoreA) winner='B';
-        else { startPenalty(); return; }
-        finishMatch(winner);
-    }
-    
-    function startPenalty() {
-        pendingPenalty = true;
-        penaltyShotsA=0; penaltyShotsB=0; penaltyGoalsA=0; penaltyGoalsB=0;
-        penaltyShooter = 'A';
-        totalPenaltyShots = 3;
-        document.getElementById('matchScore').innerText = '⚽ ПЕНАЛЬТИ! 0:0';
-        showAchievement('⚽ ПЕНАЛЬТИ! Бей!');
-    }
-    
-    function finishMatch(winner) {
-        const playerTeam = allPlayers.find(p => p.isPlayer)?.team;
-        if (winner === 'A' && playerTeam === 'A') { save.wins=(save.wins||0)+1; save.goals=(save.goals||0)+scoreA; }
-        else if (winner === 'B' && playerTeam === 'B') { save.wins=(save.wins||0)+1; save.goals=(save.goals||0)+scoreB; }
-        else if (winner !== 'draw') {
-            save.goals = (save.goals||0) + (winner==='A'?scoreA:scoreB);
+
+        // ====== СОСТОЯНИЕ ======
+        const state = {
+            coins: 100,
+            spinCost: 10,
+            multiplier: 1.0,      // общий множитель наград
+            luckLevel: 1,         // уровень удачи (влияет на шансы)
+            segmentMultiplier: 1, // множитель от апгрейда сегментов
+            upgrades: [
+                { id: 'luck', name: '🍀 Удача', desc: 'шанс на x2/x3 +5%', baseCost: 30, costMult: 1.6, level: 0, maxLevel: 10, effect: 'luck' },
+                { id: 'multi', name: '✨ Множитель', desc: 'все награды x1.2', baseCost: 50, costMult: 1.8, level: 0, maxLevel: 8, effect: 'multi' },
+                { id: 'cost', name: '💰 Скидка', desc: 'крутка -2 монеты', baseCost: 40, costMult: 1.7, level: 0, maxLevel: 6, effect: 'cost' },
+                { id: 'segment', name: '🎯 Сегменты', desc: '+2 к выигрышу', baseCost: 60, costMult: 2.0, level: 0, maxLevel: 5, effect: 'segment' },
+            ]
+        };
+
+        // ====== DOM ======
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const coinDisplay = document.getElementById('coinDisplay');
+        const luckDisplay = document.getElementById('luckDisplay');
+        const resultPopup = document.getElementById('resultPopup');
+        const upgradeGrid = document.getElementById('upgradeGrid');
+        const resetBtn = document.getElementById('resetBtn');
+
+        let isSpinning = false;
+        let currentAngle = 0;
+        let animationId = null;
+
+        // ====== ВСПОМОГАТЕЛЬНЫЕ ======
+        function formatNum(n) {
+            if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
+            if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
+            return Math.floor(n);
         }
-        saveGame(save);
-        checkAchievements();
-        updateUI();
-        
-        document.getElementById('matchScore').innerText = `⚽ ${scoreA} : ${scoreB}`;
-        const cup = document.getElementById('winner');
-        const txt = document.getElementById('winnerText');
-        const sub = document.getElementById('winnerSub');
-        if (winner === 'A' || winner === 'B') {
-            txt.innerText = `🏆 Победа команды ${winner==='A'?'А':'Б'}!`;
-            sub.innerText = `⭐ ${'⭐'.repeat(save.stars||1)}`;
-        } else {
-            txt.innerText = '🤝 Ничья!';
-            sub.innerText = 'Сыграем ещё?';
+
+        function getUpgradeCost(upgrade) {
+            return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMult, upgrade.level));
         }
-        cup.style.display = 'block';
-        restartBtn.style.display = 'block';
-        menuBtn.style.display = 'block';
-        vibrate(50);
-    }
-    
-    function goalScored(team) {
-        if (!matchActive || matchEnded) return;
-        if (team === 'A') {
-            scoreA++;
-            if (allPlayers.some(p=>p.isPlayer && p.team==='A')) {
-                save.goals=(save.goals||0)+1; saveGame(save); checkAchievements(); updateUI();
+
+        // ====== РИСОВАНИЕ КОЛЕСА ======
+        function drawWheel(angle) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerX = w/2;
+            const centerY = h/2;
+            const radius = Math.min(w, h) * 0.42;
+
+            ctx.clearRect(0, 0, w, h);
+            
+            const segmentAngle = (2 * Math.PI) / SEGMENTS.length;
+            
+            SEGMENTS.forEach((seg, i) => {
+                const startAngle = angle + i * segmentAngle;
+                const endAngle = startAngle + segmentAngle;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                
+                // градиент
+                const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+                grad.addColorStop(0, lightenColor(seg.color, 30));
+                grad.addColorStop(1, seg.color);
+                ctx.fillStyle = grad;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // текст
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(startAngle + segmentAngle/2);
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 22px "Segoe UI", sans-serif';
+                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.shadowBlur = 10;
+                ctx.fillText(seg.label, radius * 0.65, 0);
+                ctx.restore();
+            });
+
+            // центральный круг
+            const gradient = ctx.createRadialGradient(centerX-10, centerY-10, 0, centerX, centerY, 35);
+            gradient.addColorStop(0, '#4a4a8a');
+            gradient.addColorStop(1, '#1a1a3e');
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 30, 0, 2 * Math.PI);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,215,0,0.3)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // внешнее свечение
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius+6, 0, 2*Math.PI);
+            ctx.strokeStyle = 'rgba(255,215,0,0.08)';
+            ctx.lineWidth = 8;
+            ctx.stroke();
+        }
+
+        function lightenColor(hex, percent) {
+            const num = parseInt(hex.replace('#',''), 16);
+            const amt = Math.round(2.55 * percent);
+            const R = Math.min(255, (num >> 16) + amt);
+            const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+            const B = Math.min(255, (num & 0x0000FF) + amt);
+            return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
+        }
+
+        // ====== ЛОГИКА КРУТКИ ======
+        function getSpinResult() {
+            // базовая удача: случайный сектор
+            const rawIndex = Math.floor(Math.random() * SEGMENTS.length);
+            let seg = SEGMENTS[rawIndex];
+            
+            // влияние апгрейда удачи: дополнительный шанс на x2/x3
+            const luckBonus = state.upgrades.find(u => u.id === 'luck').level * 0.05; // +5% за уровень
+            const extraChance = Math.random() < luckBonus;
+            
+            let finalValue = seg.value;
+            let label = seg.label;
+            
+            if (extraChance && (seg.value === 'x2' || seg.value === 'x3')) {
+                // уже выпал множитель, но удача может удвоить
+                if (seg.value === 'x2') finalValue = 'x4';
+                else if (seg.value === 'x3') finalValue = 'x6';
+                label = finalValue;
+            } else if (extraChance && typeof seg.value === 'number') {
+                // если выпали монеты, удача добавляет бонус
+                finalValue = Math.floor(seg.value * 1.5);
+                label = finalValue.toString();
             }
-        } else {
-            scoreB++;
-            if (allPlayers.some(p=>p.isPlayer && p.team==='B')) {
-                save.goals=(save.goals||0)+1; saveGame(save); checkAchievements(); updateUI();
+            
+            // применение общего множителя (если число)
+            let reward = 0;
+            let isMultiplier = false;
+            let multiplierValue = 1;
+            
+            if (typeof finalValue === 'string' && finalValue.startsWith('x')) {
+                isMultiplier = true;
+                multiplierValue = parseFloat(finalValue.substring(1));
+                // множитель применяется к текущим монетам? нет, к следующему выигрышу
+                // но мы можем дать бонус
+                reward = Math.floor(state.coins * 0.1 * multiplierValue);
+            } else if (typeof finalValue === 'number') {
+                reward = Math.floor(finalValue * state.multiplier) + state.upgrades.find(u => u.id === 'segment').level * 2;
             }
+            
+            return { 
+                reward, 
+                isMultiplier, 
+                multiplierValue,
+                label: typeof finalValue === 'string' ? finalValue : finalValue.toString(),
+                rawIndex,
+                segment: seg
+            };
         }
-        document.getElementById('scoreA').innerText = scoreA;
-        document.getElementById('scoreB').innerText = scoreB;
-        document.getElementById('matchScore').innerText = `⚽ ${scoreA} : ${scoreB}`;
-        addFloatText(ball.x, ball.y-30, '⚽ ГОЛ!', '#ffd700');
-        vibrate(40);
-        if (scoreA >= 3 || scoreB >= 3) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            endMatch();
-        } else {
-            resetBall();
-        }
-    }
-    
-    // ---- БОТЫ ----
-    function updateBot(p, isTeamA) {
-        if (matchEnded && !pendingPenalty) return;
-        const dx = ball.x - p.x, dy = ball.y - p.y;
-        const distToBall = Math.sqrt(dx*dx+dy*dy);
-        let tx = p.targetX || 200, ty = p.targetY || 400;
-        
-        if (p.isGoalkeeper) {
-            const goalX = isTeamA ? 28 : W-28;
-            const goalY = H/2;
-            if (distToBall < 180 && ball.x > goalA.x-20 && ball.x < goalA.x+goalA.w+20) {
-                tx = isTeamA ? goalA.x+goalA.w+40 : goalB.x-40;
-                ty = Math.max(goalA.y+20, Math.min(goalA.y+goalA.h-20, ball.y));
-            } else {
-                tx = goalX + (Math.random()-0.5)*20;
-                ty = goalY + (Math.random()-0.5)*40;
-            }
-        } else {
-            if (p === ballOwner) {
-                const targetGoalX = isTeamA ? W-40 : 30;
-                const targetGoalY = H/2 + (Math.random()-0.5)*80;
-                tx = targetGoalX; ty = targetGoalY;
-                if (Math.random() < 0.025 && distToBall < 35) {
-                    const kx = targetGoalX - ball.x, ky = targetGoalY - ball.y;
-                    const kd = Math.sqrt(kx*kx+ky*ky) || 1;
-                    const power = p.power * (selectedDifficulty==='extreme'?1.5:1.0);
-                    ball.vx = (kx/kd)*power + (Math.random()-0.5)*0.5;
-                    ball.vy = (ky/kd)*power + (Math.random()-0.5)*0.5;
-                    ballOwner = null;
-                    return;
-                }
-            } else {
-                if (distToBall < 250) {
-                    tx = ball.x + (Math.random()-0.5)*70;
-                    ty = ball.y + (Math.random()-0.5)*70;
-                } else {
-                    tx = ball.x; ty = ball.y;
-                }
-                if (ballOwner && distToBall < 45 && Math.random() < diffTackle[selectedDifficulty]*0.4) {
-                    ballOwner = p;
-                    ball.x = p.x+18; ball.y = p.y;
-                    ball.vx = 0; ball.vy = 0;
-                    addFloatText(p.x, p.y-35, '⚔️ Отбор!', '#4dabf7');
-                }
-            }
-        }
-        const dxt = tx - p.x, dyt = ty - p.y;
-        const distT = Math.sqrt(dxt*dxt + dyt*dyt);
-        let spd = (p.speed||1.5) * (0.85 + Math.random()*0.3);
-        if (sprintActive && p.isPlayer) spd *= 1.5;
-        if (distT > 3) {
-            const move = Math.min(spd, distT);
-            p.x += (dxt/distT)*move;
-            p.y += (dyt/distT)*move;
-        } else if (!p.isGoalkeeper && p!==ballOwner) {
-            p.targetX = 80 + Math.random()*340;
-            p.targetY = 100 + Math.random()*500;
-        }
-        if (p.isGoalkeeper) {
-            p.x = Math.max(goalA.x-50, Math.min(goalA.x+goalA.w+50, p.x));
-            p.y = Math.max(goalA.y+10, Math.min(goalA.y+goalA.h-10, p.y));
-        } else {
-            p.x = Math.max(30, Math.min(W-30, p.x));
-            p.y = Math.max(30, Math.min(H-30, p.y));
-        }
-        if (p.stamina < p.maxStamina) p.stamina = Math.min(p.maxStamina, p.stamina + 0.15);
-    }
-    
-    // ---- ОБНОВЛЕНИЕ ----
-    function update() {
-        if (gameState !== 'playing') return;
-        
-        // Пенальти
-        if (pendingPenalty) {
-            if (penaltyShotsA + penaltyShotsB >= totalPenaltyShots*2) {
-                if (penaltyGoalsA > penaltyGoalsB) finishMatch('A');
-                else if (penaltyGoalsB > penaltyGoalsA) finishMatch('B');
-                else { totalPenaltyShots = 1; penaltyShotsA=0; penaltyShotsB=0; penaltyGoalsA=0; penaltyGoalsB=0; penaltyShooter='A'; 
-                       document.getElementById('matchScore').innerText = '⚽ СМЕРТЬ! 0:0'; return; }
-                pendingPenalty = false;
+
+        function spinWheel() {
+            if (isSpinning) return;
+            if (state.coins < state.spinCost) {
+                resultPopup.textContent = '❌ Не хватает монет!';
+                resultPopup.style.color = '#ff6b6b';
                 return;
             }
-            if (kickPressed && penaltyShooter === 'A') {
-                kickPressed = false;
-                const angle = Math.atan2(joystickY, joystickX);
-                const keeperChance = selectedDifficulty==='easy'?0.25:selectedDifficulty==='medium'?0.45:selectedDifficulty==='hard'?0.65:0.8;
-                const keeperGuess = Math.random() < keeperChance ? angle : angle + Math.PI/2 + (Math.random()-0.5)*0.5;
-                const isGoal = Math.abs(angle - keeperGuess) > 0.7;
-                if (penaltyShooter === 'A') { penaltyShotsA++; if (isGoal) penaltyGoalsA++; }
-                else { penaltyShotsB++; if (isGoal) penaltyGoalsB++; }
-                document.getElementById('matchScore').innerText = `⚽ ПЕНАЛЬТИ! ${penaltyGoalsA}:${penaltyGoalsB}`;
-                addFloatText(W/2, H/2-50, isGoal ? '⚽ ГОЛ!' : '😱 Сэйв!', isGoal ? '#ffd700' : '#ff6b6b');
-                vibrate(isGoal ? 40 : 20);
-                penaltyShooter = penaltyShooter === 'A' ? 'B' : 'A';
-                if (penaltyShotsA+penaltyShotsB >= totalPenaltyShots*2) {
-                    if (penaltyGoalsA > penaltyGoalsB) finishMatch('A');
-                    else if (penaltyGoalsB > penaltyGoalsA) finishMatch('B');
-                    else { totalPenaltyShots = 1; penaltyShotsA=0; penaltyShotsB=0; penaltyGoalsA=0; penaltyGoalsB=0; penaltyShooter='A'; 
-                           document.getElementById('matchScore').innerText = '⚽ СМЕРТЬ! 0:0'; }
-                    pendingPenalty = false;
-                }
-            }
-            return;
-        }
-        
-        if (!matchActive || matchEnded) return;
-        
-        const myPlayer = allPlayers.find(p => p.isPlayer);
-        const speedBonus = 1 + (save.stars-1)*0.12;
-        
-        // Управление игроком
-        if (myPlayer && joystickActive) {
-            const jx = joystickX, jy = joystickY;
-            const dist = Math.sqrt(jx*jx+jy*jy);
-            if (dist > 0.05) {
-                let spd = 7 * speedBonus * Math.min(1, dist*2);
-                if (sprintActive && myPlayer.stamina > 10) {
-                    spd *= 1.7;
-                    myPlayer.stamina -= 0.6;
-                }
-                myPlayer.x += (jx/dist)*spd;
-                myPlayer.y += (jy/dist)*spd;
-                if (myPlayer.stamina < 0) myPlayer.stamina = 0;
-            }
-        }
-        if (myPlayer && myPlayer.stamina < myPlayer.maxStamina && !sprintActive) {
-            myPlayer.stamina = Math.min(myPlayer.maxStamina, myPlayer.stamina + 0.3);
-        }
-        if (sprintTimer > 0) sprintTimer--;
-        else sprintActive = false;
-        
-        // Мяч у игрока
-        if (myPlayer && ballOwner === myPlayer) {
-            ball.x = myPlayer.x + 22;
-            ball.y = myPlayer.y;
-            ball.vx = 0; ball.vy = 0;
-        }
-        
-        // Ограничения
-        allPlayers.forEach(p => {
-            if (!p.isGoalkeeper) {
-                p.x = Math.max(30, Math.min(W-30, p.x));
-                p.y = Math.max(30, Math.min(H-30, p.y));
-            }
-        });
-        
-        // Боты
-        allPlayers.filter(p => !p.isPlayer).forEach(p => {
-            updateBot(p, p.team === 'A');
-        });
-        
-        // Удар с зарядом
-        if (myPlayer && kickPressed && ballOwner === myPlayer && !pendingPenalty) {
-            if (!isCharging) { isCharging = true; powerCharge = 0; powerIndicator.style.display = 'block'; }
-            powerCharge = Math.min(100, powerCharge + 1.8);
-            powerFill.style.width = powerCharge + '%';
-            if (powerCharge > 80) vibrate(5);
-        } else if (isCharging && myPlayer && ballOwner === myPlayer) {
-            isCharging = false;
-            powerIndicator.style.display = 'none';
-            const angle = Math.atan2(joystickY || -0.1, joystickX || 0.1);
-            const power = 2 + (powerCharge/100) * 6 * (1 + (save.stars-1)*0.08);
-            const spinEffect = (Math.random()-0.5) * 0.3;
-            ball.vx = Math.cos(angle) * power + spinEffect;
-            ball.vy = Math.sin(angle) * power + spinEffect;
-            ball.spin = spinEffect * 0.02;
-            ballOwner = null;
-            powerCharge = 0;
-            if (power > 6) {
-                addFloatText(ball.x, ball.y-40, '💥 МОЩНЫЙ!', '#ff6b6b');
-                vibrate(30);
-            }
-            kickPressed = false;
-        }
-        
-        // Отбор
-        if (myPlayer && tacklePressed && !pendingPenalty) {
-            let target = null, minDist = 70;
-            for (let p of allPlayers) {
-                if (p === myPlayer || p.team === myPlayer.team) continue;
-                if (p === ballOwner) {
-                    const dx = myPlayer.x - p.x, dy = myPlayer.y - p.y;
-                    const d = Math.sqrt(dx*dx+dy*dy);
-                    if (d < minDist) { minDist = d; target = p; }
-                }
-            }
-            if (target) {
-                const chance = 0.25 + (save.stars-1)*0.05 - diffTackle[selectedDifficulty]*0.15;
-                if (Math.random() < chance) {
-                    ballOwner = myPlayer;
-                    ball.x = myPlayer.x+20; ball.y = myPlayer.y;
-                    ball.vx = 0; ball.vy = 0;
-                    addFloatText(myPlayer.x, myPlayer.y-35, '⚔️ Отбор!', '#4dabf7');
-                    vibrate(15);
-                }
-            }
-            tacklePressed = false;
-        }
-        
-        // Физика мяча
-        if (!ballOwner) {
-            ball.x += ball.vx;
-            ball.y += ball.vy;
-            ball.vx *= 0.985;
-            ball.vy *= 0.985;
-            // Эффект закрутки
-            if (Math.abs(ball.spin) > 0.001) {
-                ball.vy += ball.spin * 0.02;
-                ball.spin *= 0.99;
-            }
-            if (Math.abs(ball.vx) < 0.05) ball.vx = 0;
-            if (Math.abs(ball.vy) < 0.05) ball.vy = 0;
-        }
-        
-        // Столкновения с углами (скруглённые)
-        const cr = CORNER_RADIUS;
-        const corners = [
-            { cx: cr, cy: cr },
-            { cx: W-cr, cy: cr },
-            { cx: cr, cy: H-cr },
-            { cx: W-cr, cy: H-cr }
-        ];
-        for (let c of corners) {
-            const dx = ball.x - c.cx, dy = ball.y - c.cy;
-            const dist = Math.sqrt(dx*dx+dy*dy);
-            if (dist < cr - ball.r) {
-                const angle = Math.atan2(dy, dx);
-                ball.x = c.cx + Math.cos(angle) * (cr - ball.r);
-                ball.y = c.cy + Math.sin(angle) * (cr - ball.r);
-                const nx = Math.cos(angle), ny = Math.sin(angle);
-                const dot = ball.vx*nx + ball.vy*ny;
-                if (dot < 0) { ball.vx -= 2*dot*nx*0.7; ball.vy -= 2*dot*ny*0.7; }
-            }
-        }
-        
-        // Стенки
-        if (ball.y < ball.r+5) { ball.y = ball.r+5; ball.vy *= -0.5; }
-        if (ball.y > H-ball.r-5) { ball.y = H-ball.r-5; ball.vy *= -0.5; }
-        if (ball.x < ball.r+5 && !(ball.y > goalA.y && ball.y < goalA.y+goalA.h)) {
-            ball.x = ball.r+5; ball.vx *= -0.5;
-        }
-        if (ball.x > W-ball.r-5 && !(ball.y > goalB.y && ball.y < goalB.y+goalB.h)) {
-            ball.x = W-ball.r-5; ball.vx *= -0.5;
-        }
-        
-        // Голы
-        if (ball.x < goalA.x+goalA.w && ball.y > goalA.y+8 && ball.y < goalA.y+goalA.h-8) {
-            if (!ballOwner || ballOwner.team !== 'A') { goalScored('B'); ballOwner = null; }
-        }
-        if (ball.x > goalB.x-goalB.w && ball.y > goalB.y+8 && ball.y < goalB.y+goalB.h-8) {
-            if (!ballOwner || ballOwner.team !== 'B') { goalScored('A'); ballOwner = null; }
-        }
-        
-        ball.x = Math.max(ball.r, Math.min(W-ball.r, ball.x));
-        ball.y = Math.max(ball.r, Math.min(H-ball.r, ball.y));
-        
-        // Float texts
-        floatTexts = floatTexts.filter(t => {
-            t.life--;
-            t.y -= 0.7;
-            return t.life > 0;
-        });
-    }
-    
-    // ---- РИСОВАНИЕ ----
-    function draw() {
-        ctx.clearRect(0, 0, W, H);
-        // Поле
-        const grad = ctx.createRadialGradient(W/2, H/2, 30, W/2, H/2, 350);
-        grad.addColorStop(0, '#3d8b40');
-        grad.addColorStop(1, '#1b5e20');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, W, H);
-        
-        // Линии
-        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-        ctx.lineWidth = 2;
-        const cr = CORNER_RADIUS;
-        ctx.beginPath();
-        ctx.moveTo(cr, 3); ctx.lineTo(W-cr, 3);
-        ctx.quadraticCurveTo(W-3, 3, W-3, cr);
-        ctx.lineTo(W-3, H-cr);
-        ctx.quadraticCurveTo(W-3, H-3, W-cr, H-3);
-        ctx.lineTo(cr, H-3);
-        ctx.quadraticCurveTo(3, H-3, 3, H-cr);
-        ctx.lineTo(3, cr);
-        ctx.quadraticCurveTo(3, 3, cr, 3);
-        ctx.closePath();
-        ctx.stroke();
-        
-        ctx.setLineDash([6,10]);
-        ctx.beginPath();
-        ctx.moveTo(W/2, 3); ctx.lineTo(W/2, H-3);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.beginPath();
-        ctx.arc(W/2, H/2, 50, 0, Math.PI*2);
-        ctx.stroke();
-        
-        // Ворота А
-        ctx.fillStyle = 'rgba(255,255,255,0.05)';
-        ctx.fillRect(goalA.x, goalA.y, goalA.w, goalA.h);
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(goalA.x, goalA.y, goalA.w, goalA.h);
-        
-        ctx.fillStyle = 'rgba(255,255,255,0.05)';
-        ctx.fillRect(goalB.x, goalB.y, goalB.w, goalB.h);
-        ctx.strokeRect(goalB.x, goalB.y, goalB.w, goalB.h);
-        
-        // Игроки
-        for (let p of allPlayers) {
-            const isMy = p.isPlayer;
-            ctx.shadowColor = isMy ? 'rgba(255,215,0,0.5)' : 'rgba(0,0,0,0.2)';
-            ctx.shadowBlur = isMy ? 25 : 6;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-            const color = isMy ? '#ffd700' : p.color;
-            ctx.fillStyle = color;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = isMy ? '#ffd700' : 'rgba(0,0,0,0.3)';
-            ctx.lineWidth = isMy ? 3 : 1.5;
-            ctx.stroke();
+
+            state.coins -= state.spinCost;
+            isSpinning = true;
+            spinBtn.disabled = true;
+            resultPopup.textContent = '🎡 Крутим...';
+
+            // определяем результат
+            const result = getSpinResult();
             
-            // Имя и роль
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 9px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = 'black';
-            const roleIcon = p.isGoalkeeper ? '🧤' : '⚡';
-            const stars = isMy ? '⭐'.repeat(save.stars||1) : '⭐'.repeat(diffStars[selectedDifficulty]||2);
-            ctx.fillText(`${p.name} ${stars}`, p.x, p.y - p.r - 6);
-            ctx.shadowBlur = 0;
+            // рассчитываем финальный угол (чтобы указатель попал на нужный сектор)
+            const segmentAngle = (2 * Math.PI) / SEGMENTS.length;
+            // целевой угол: противоположный сектор (указатель сверху)
+            const targetSegIndex = result.rawIndex;
+            // указатель сверху = -PI/2, поэтому сектор должен быть внизу
+            const targetAngle = -Math.PI/2 - (targetSegIndex * segmentAngle) - segmentAngle/2;
             
-            // Шкала выносливости
-            if (isMy) {
-                const stW = 30, stH = 4;
-                ctx.fillStyle = 'rgba(0,0,0,0.4)';
-                ctx.fillRect(p.x-stW/2, p.y-p.r-16, stW, stH);
-                ctx.fillStyle = p.stamina > 40 ? '#4caf50' : p.stamina > 20 ? '#ffd700' : '#ff1744';
-                ctx.fillRect(p.x-stW/2, p.y-p.r-16, stW * (p.stamina/p.maxStamina), stH);
+            // добавляем несколько оборотов для красоты
+            const extraSpins = 5 + Math.floor(Math.random() * 3);
+            const finalAngle = targetAngle + extraSpins * 2 * Math.PI;
+            
+            // анимация
+            const startAngle = currentAngle;
+            const duration = 3000 + Math.random() * 1000;
+            const startTime = performance.now();
+            
+            function animateSpin(time) {
+                const elapsed = time - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // easeOutCubic
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = startAngle + (finalAngle - startAngle) * eased;
+                currentAngle = current;
+                drawWheel(current);
+                
+                if (progress < 1) {
+                    animationId = requestAnimationFrame(animateSpin);
+                } else {
+                    currentAngle = finalAngle;
+                    drawWheel(currentAngle);
+                    // показываем результат
+                    applyResult(result);
+                    isSpinning = false;
+                    spinBtn.disabled = false;
+                }
             }
             
-            if (p === ballOwner) {
-                ctx.strokeStyle = 'rgba(255,215,0,0.3)';
-                ctx.lineWidth = 2;
-                ctx.setLineDash([4,4]);
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.r+7, 0, Math.PI*2);
-                ctx.stroke();
-                ctx.setLineDash([]);
+            animationId = requestAnimationFrame(animateSpin);
+        }
+
+        function applyResult(result) {
+            let message = '';
+            let color = '#ffd700';
+            
+            if (result.isMultiplier) {
+                // множитель: даём бонусные монеты
+                const bonus = Math.floor(state.coins * 0.15 * result.multiplierValue);
+                state.coins += bonus;
+                message = `🎯 x${result.multiplierValue}! +${bonus} монет!`;
+                color = '#ff6bff';
+            } else {
+                state.coins += result.reward;
+                message = `💰 +${result.reward} монет!`;
+                if (result.reward >= 50) color = '#ffd700';
+                else if (result.reward >= 20) color = '#feca57';
+                else color = '#48dbfb';
             }
+            
+            resultPopup.textContent = message;
+            resultPopup.style.color = color;
+            updateUI();
+            renderUpgrades();
         }
-        
-        // Мяч
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 18;
-        const gradBall = ctx.createRadialGradient(ball.x-4, ball.y-4, 2, ball.x, ball.y, ball.r);
-        gradBall.addColorStop(0, '#ffffff');
-        gradBall.addColorStop(0.7, '#f0f0f0');
-        gradBall.addColorStop(1, '#a0a0a0');
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
-        ctx.fillStyle = gradBall;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = '#444';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        // Блик
-        ctx.beginPath();
-        ctx.arc(ball.x-3, ball.y-4, 3, 0, Math.PI*2);
-        ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        ctx.fill();
-        
-        // Float texts
-        for (let t of floatTexts) {
-            ctx.fillStyle = t.color;
-            ctx.font = 'bold 24px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 20;
-            ctx.globalAlpha = t.life / t.maxLife;
-            ctx.fillText(t.text, t.x, t.y);
-            ctx.globalAlpha = 1;
-            ctx.shadowBlur = 0;
-        }
-    }
-    
-    // ---- ЦИКЛ ----
-    function loop() {
-        update();
-        draw();
-        requestAnimationFrame(loop);
-    }
-    
-    // ---- СОБЫТИЯ МЕНЮ ----
-    document.querySelectorAll('.player-card').forEach(el => {
-        el.addEventListener('click', function() {
-            document.querySelectorAll('.player-card').forEach(c => c.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedPlayer = parseInt(this.dataset.player);
-            document.getElementById('startBtn').disabled = false;
-            document.querySelectorAll('.diff-btn').forEach(b => b.disabled = false);
-            vibrate(8);
-        });
-    });
-    
-    document.querySelectorAll('.diff-btn').forEach(el => {
-        el.addEventListener('click', function() {
-            document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            selectedDifficulty = this.dataset.diff;
-            vibrate(8);
-        });
-    });
-    
-    document.querySelectorAll('.tab-btn').forEach(el => {
-        el.addEventListener('click', function() {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById('tab-'+this.dataset.tab).classList.add('active');
-        });
-    });
-    
-    document.getElementById('startBtn').addEventListener('click', function() {
-        if (selectedPlayer === -1) return;
-        menu.style.display = 'none';
-        hud.style.display = 'flex';
-        joystickArea.style.display = 'block';
-        document.getElementById('action-btns').style.display = 'flex';
-        gameState = 'playing';
-        initPlayers();
-        startMatch();
-        vibrate(20);
-    });
-    
-    document.getElementById('resetBtn').addEventListener('click', resetProgress);
-    
-    // ---- ДЖОЙСТИК ----
-    joystickArea.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        joystickTouchId = touch.identifier;
-        joystickActive = true;
-        updateJoystick(touch);
-    }, { passive: false });
-    
-    joystickArea.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        for (let touch of e.touches) {
-            if (touch.identifier === joystickTouchId) updateJoystick(touch);
-        }
-    }, { passive: false });
-    
-    joystickArea.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        joystickActive = false;
-        joystickX = 0; joystickY = 0;
-        joystickKnob.style.transform = 'translate(-50%, -50%)';
-        joystickTouchId = null;
-    }, { passive: false });
-    
-    joystickArea.addEventListener('touchcancel', (e) => {
-        joystickActive = false;
-        joystickX = 0; joystickY = 0;
-        joystickKnob.style.transform = 'translate(-50%, -50%)';
-        joystickTouchId = null;
-    });
-    
-    function updateJoystick(touch) {
-        const rect = joystickArea.getBoundingClientRect();
-        const cx = rect.left + rect.width/2;
-        const cy = rect.top + rect.height/2;
-        let dx = touch.clientX - cx, dy = touch.clientY - cy;
-        const maxD = rect.width/2 - 22;
-        const dist = Math.sqrt(dx*dx+dy*dy);
-        if (dist > maxD) {
-            dx = (dx/dist)*maxD;
-            dy = (dy/dist)*maxD;
-        }
-        joystickX = dx / maxD;
-        joystickY = dy / maxD;
-        joystickKnob.style.transform = `translate(${dx-22}px, ${dy-22}px)`;
-    }
-    
-    // ---- КНОПКИ ----
-    kickBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        kickPressed = true;
-        kickBtn.classList.add('active');
-        vibrate(5);
-    }, { passive: false });
-    kickBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        kickBtn.classList.remove('active');
-        if (isCharging) {
-            isCharging = false;
-            powerIndicator.style.display = 'none';
-            const myPlayer = allPlayers.find(p => p.isPlayer);
-            if (myPlayer && ballOwner === myPlayer) {
-                const angle = Math.atan2(joystickY || -0.1, joystickX || 0.1);
-                const power = 2 + (powerCharge/100) * 6 * (1 + (save.stars-1)*0.08);
-                ball.vx = Math.cos(angle) * power;
-                ball.vy = Math.sin(angle) * power;
-                ballOwner = null;
-                if (power > 6) { addFloatText(ball.x, ball.y-40, '💥 МОЩНЫЙ!', '#ff6b6b'); vibrate(30); }
+
+        // ====== АПГРЕЙДЫ ======
+        function buyUpgrade(id) {
+            const upg = state.upgrades.find(u => u.id === id);
+            if (!upg) return;
+            if (upg.level >= upg.maxLevel) {
+                resultPopup.textContent = '❌ Максимальный уровень!';
+                return;
             }
-            powerCharge = 0;
-        }
-    }, { passive: false });
-    kickBtn.addEventListener('touchcancel', () => {
-        kickBtn.classList.remove('active');
-        if (isCharging) { isCharging = false; powerIndicator.style.display = 'none'; powerCharge = 0; }
-    });
-    
-    tackleBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        tacklePressed = true;
-        tackleBtn.classList.add('active');
-        vibrate(5);
-    }, { passive: false });
-    tackleBtn.addEventListener('touchend', (e) => {
-        e.preventDefault();
-        tackleBtn.classList.remove('active');
-    }, { passive: false });
-    tackleBtn.addEventListener('touchcancel', () => { tackleBtn.classList.remove('active'); });
-    
-    sprintBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (!sprintActive) {
-            const myPlayer = allPlayers.find(p => p.isPlayer);
-            if (myPlayer && myPlayer.stamina > 15) {
-                sprintActive = true;
-                sprintTimer = 90;
-                sprintBtn.classList.add('active');
-                vibrate(10);
+            const cost = getUpgradeCost(upg);
+            if (state.coins < cost) {
+                resultPopup.textContent = '❌ Не хватает монет!';
+                return;
             }
+            
+            state.coins -= cost;
+            upg.level += 1;
+            
+            // применяем эффект
+            switch(upg.effect) {
+                case 'luck':
+                    // ничего, используется в getSpinResult
+                    break;
+                case 'multi':
+                    state.multiplier = 1 + upg.level * 0.2;
+                    break;
+                case 'cost':
+                    state.spinCost = Math.max(2, 10 - upg.level * 2);
+                    break;
+                case 'segment':
+                    // используется в getSpinResult
+                    break;
+            }
+            
+            resultPopup.textContent = `⬆️ ${upg.name} улучшен до ${upg.level} уровня!`;
+            resultPopup.style.color = '#48dbfb';
+            updateUI();
+            renderUpgrades();
         }
-    }, { passive: false });
-    sprintBtn.addEventListener('touchend', () => {
-        sprintBtn.classList.remove('active');
-    });
-    sprintBtn.addEventListener('touchcancel', () => { sprintBtn.classList.remove('active'); });
-    
-    // ---- КНОПКИ МЕНЮ ----
-    restartBtn.addEventListener('click', () => {
-        document.getElementById('winner').style.display = 'none';
-        restartBtn.style.display = 'none';
-        menuBtn.style.display = 'none';
-        startMatch();
-        vibrate(15);
-    });
-    
-    menuBtn.addEventListener('click', () => {
-        document.getElementById('winner').style.display = 'none';
-        restartBtn.style.display = 'none';
-        menuBtn.style.display = 'none';
-        hud.style.display = 'none';
-        joystickArea.style.display = 'none';
-        document.getElementById('action-btns').style.display = 'none';
-        menu.style.display = 'flex';
-        gameState = 'menu';
-        matchActive = false;
-        if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+        // ====== UI ======
+        function updateUI() {
+            coinDisplay.textContent = formatNum(state.coins);
+            luckDisplay.textContent = (1 + state.upgrades.find(u => u.id === 'luck').level * 0.05).toFixed(2);
+            spinBtn.textContent = `🎡 КРУТИТЬ (${state.spinCost} 🪙)`;
+            // обновим доступность кнопки
+            spinBtn.disabled = isSpinning || state.coins < state.spinCost;
+        }
+
+        function renderUpgrades() {
+            let html = '';
+            state.upgrades.forEach(upg => {
+                const cost = getUpgradeCost(upg);
+                const canBuy = state.coins >= cost && upg.level < upg.maxLevel;
+                const isMaxed = upg.level >= upg.maxLevel;
+                
+                html += `
+                    <div class="upgrade-card">
+                        <div class="upgrade-name">${upg.name}</div>
+                        <div class="upgrade-desc">${upg.desc}</div>
+                        <div class="upgrade-stats">
+                            <span>ур. ${upg.level}/${upg.maxLevel}</span>
+                            <span>💰 ${formatNum(cost)}</span>
+                        </div>
+                        <button class="upgrade-btn ${canBuy ? 'buyable' : ''}" 
+                                ${!canBuy ? 'disabled' : ''}
+                                onclick="window.buyUpgrade('${upg.id}')">
+                            ${isMaxed ? '✅ MAX' : (canBuy ? 'Купить' : 'не хватает')}
+                        </button>
+                    </div>
+                `;
+            });
+            upgradeGrid.innerHTML = html;
+        }
+
+        // делаем buyUpgrade глобальной для onclick
+        window.buyUpgrade = buyUpgrade;
+
+        // ====== СБРОС ======
+        function resetGame() {
+            if (!confirm('Сбросить весь прогресс?')) return;
+            state.coins = 100;
+            state.spinCost = 10;
+            state.multiplier = 1.0;
+            state.upgrades.forEach(u => u.level = 0);
+            currentAngle = 0;
+            drawWheel(0);
+            updateUI();
+            renderUpgrades();
+            resultPopup.textContent = '🔄 Прогресс сброшен';
+            resultPopup.style.color = '#888';
+        }
+
+        // ====== СОХРАНЕНИЕ ======
+        function saveGame() {
+            try {
+                const data = {
+                    coins: state.coins,
+                    spinCost: state.spinCost,
+                    multiplier: state.multiplier,
+                    upgrades: state.upgrades.map(u => ({ id: u.id, level: u.level }))
+                };
+                localStorage.setItem('wheel_upgrader_save', JSON.stringify(data));
+            } catch(e) {}
+        }
+
+        function loadGame() {
+            try {
+                const raw = localStorage.getItem('wheel_upgrader_save');
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                state.coins = data.coins || 100;
+                state.spinCost = data.spinCost || 10;
+                state.multiplier = data.multiplier || 1.0;
+                if (data.upgrades) {
+                    data.upgrades.forEach(saved => {
+                        const found = state.upgrades.find(u => u.id === saved.id);
+                        if (found) found.level = saved.level || 0;
+                    });
+                }
+                // переприменить эффекты
+                state.upgrades.forEach(upg => {
+                    switch(upg.effect) {
+                        case 'multi':
+                            state.multiplier = 1 + upg.level * 0.2;
+                            break;
+                        case 'cost':
+                            state.spinCost = Math.max(2, 10 - upg.level * 2);
+                            break;
+                    }
+                });
+            } catch(e) {}
+        }
+
+        // ====== ИНИЦИАЛИЗАЦИЯ ======
+        loadGame();
+        drawWheel(0);
         updateUI();
-    });
-    
-    // ---- ЗАПУСК ----
-    updateUI();
-    loop();
+        renderUpgrades();
+
+        // события
+        spinBtn.addEventListener('click', spinWheel);
+        canvas.addEventListener('click', spinWheel);
+        resetBtn.addEventListener('click', resetGame);
+
+        // автосохранение
+        setInterval(saveGame, 5000);
+        window.addEventListener('beforeunload', saveGame);
+
+        console.log('🎡 Колесо Апгрейдер запущено!');
+    })();
 </script>
 </body>
 </html>
