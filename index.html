@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎡 Колесо Апгрейдер</title>
+    <title>🎰 Казино-Апгрейдер</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
         }
         body {
             min-height: 100vh;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            background: linear-gradient(135deg, #0a0a1a, #1a0a2e, #2d1b4e);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -21,14 +21,14 @@
             padding: 16px;
         }
         .game-container {
-            max-width: 800px;
+            max-width: 700px;
             width: 100%;
-            background: rgba(20, 20, 50, 0.9);
+            background: rgba(20, 15, 35, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 40px;
             padding: 30px 24px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 40px rgba(255, 215, 0, 0.05);
         }
         .header {
             display: flex;
@@ -39,23 +39,88 @@
             padding: 0 8px;
         }
         .coins {
-            font-size: 1.8rem;
+            font-size: 2rem;
             font-weight: 700;
             background: linear-gradient(135deg, #f7971e, #ffd200);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
         }
         .coins span {
-            font-size: 1.2rem;
-            color: #aaa;
-            -webkit-text-fill-color: #aaa;
+            font-size: 1rem;
+            color: #888;
+            -webkit-text-fill-color: #888;
         }
+
+        /* === БЛОК СТАВКИ === */
+        .bet-section {
+            background: rgba(0,0,0,0.4);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,215,0,0.08);
+        }
+        .bet-label {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .bet-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .bet-input {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 2px solid #333;
+            background: #0a0a1a;
+            color: #ffd700;
+            font-size: 1.2rem;
+            font-weight: 700;
+            outline: none;
+            transition: 0.2s;
+        }
+        .bet-input:focus {
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+        }
+        .bet-presets {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .bet-preset-btn {
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            background: transparent;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            font-weight: 600;
+        }
+        .bet-preset-btn:hover {
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+        .bet-preset-btn.active {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+            color: #ffd700;
+        }
+
+        /* === КОЛЕСО === */
         .wheel-wrapper {
             position: relative;
-            margin: 20px auto;
+            margin: 10px auto;
             width: 100%;
-            max-width: 450px;
+            max-width: 400px;
             aspect-ratio: 1;
         }
         .wheel-container {
@@ -63,9 +128,9 @@
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.2), 0 0 80px rgba(255, 215, 0, 0.1);
-            background: #1a1a3e;
-            padding: 12px;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.15), 0 0 80px rgba(255, 215, 0, 0.05);
+            background: #0a0a1a;
+            padding: 10px;
         }
         canvas#wheelCanvas {
             width: 100% !important;
@@ -90,142 +155,157 @@
         }
         .spin-btn {
             position: absolute;
-            bottom: 15%;
+            bottom: 12%;
             left: 50%;
             transform: translateX(-50%);
             background: linear-gradient(135deg, #f7971e, #ffd200);
             border: none;
             border-radius: 50px;
-            padding: 14px 32px;
-            font-size: 1.3rem;
+            padding: 14px 28px;
+            font-size: 1.2rem;
             font-weight: 800;
-            color: #1a1a3e;
+            color: #0a0a1a;
             cursor: pointer;
-            box-shadow: 0 8px 0 #b37b1a, 0 12px 30px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 8px 0 #b37b1a, 0 12px 30px rgba(255, 215, 0, 0.2);
             transition: all 0.08s linear;
             z-index: 10;
             letter-spacing: 1px;
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid rgba(255,255,255,0.2);
+            white-space: nowrap;
         }
         .spin-btn:active {
             transform: translateX(-50%) translateY(6px);
             box-shadow: 0 2px 0 #b37b1a;
         }
         .spin-btn:disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             transform: translateX(-50%) translateY(4px);
             box-shadow: 0 4px 0 #b37b1a;
             cursor: not-allowed;
         }
+
+        /* === РЕЗУЛЬТАТ === */
         .result-popup {
             text-align: center;
-            margin: 16px 0 10px;
+            margin: 12px 0 10px;
             min-height: 50px;
-            font-size: 1.5rem;
-            font-weight: 600;
+            font-size: 1.4rem;
+            font-weight: 700;
             color: #ffd700;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
             transition: all 0.3s;
         }
+        .chance-display {
+            text-align: center;
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+        }
+        .chance-display span {
+            color: #ffd700;
+            font-weight: 700;
+        }
+
+        /* === АПГРЕЙДЫ (внизу) === */
         .upgrades-section {
-            margin-top: 24px;
+            margin-top: 20px;
             background: rgba(0,0,0,0.3);
             border-radius: 24px;
-            padding: 20px;
+            padding: 18px 16px;
             border: 1px solid rgba(255,255,255,0.05);
         }
         .upgrades-title {
-            color: #aaa;
-            font-size: 0.9rem;
+            color: #666;
+            font-size: 0.8rem;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             text-align: center;
         }
         .upgrade-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
         }
         .upgrade-card {
-            background: rgba(30, 30, 70, 0.6);
-            border-radius: 16px;
-            padding: 14px 16px;
-            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(30, 20, 50, 0.6);
+            border-radius: 14px;
+            padding: 12px 14px;
+            border: 1px solid rgba(255,255,255,0.05);
             transition: all 0.2s;
         }
         .upgrade-card:hover {
-            border-color: rgba(255, 215, 0, 0.2);
-            background: rgba(40, 40, 90, 0.6);
+            border-color: rgba(255, 215, 0, 0.15);
         }
         .upgrade-name {
             color: #fff;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
         .upgrade-desc {
-            color: #888;
-            font-size: 0.8rem;
-            margin: 4px 0 8px;
+            color: #777;
+            font-size: 0.75rem;
+            margin: 3px 0 6px;
         }
         .upgrade-stats {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.8rem;
-            color: #aaa;
-            margin-bottom: 8px;
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 6px;
         }
         .upgrade-btn {
             width: 100%;
-            padding: 8px;
+            padding: 6px;
             border: none;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #2d2d6b, #1a1a3e);
-            color: #888;
+            border-radius: 8px;
+            background: #2a1a3e;
+            color: #666;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid rgba(255,255,255,0.05);
+            transition: 0.2s;
+            font-size: 0.8rem;
         }
         .upgrade-btn.buyable {
             background: linear-gradient(135deg, #f7971e, #ffd200);
-            color: #1a1a3e;
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+            color: #0a0a1a;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.15);
         }
         .upgrade-btn.buyable:hover {
             transform: scale(1.02);
-            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.3);
         }
         .upgrade-btn:disabled {
-            opacity: 0.4;
+            opacity: 0.3;
             cursor: not-allowed;
             transform: none !important;
         }
         .reset-btn {
             background: transparent;
-            border: 1px solid #444;
-            color: #666;
-            padding: 6px 16px;
-            border-radius: 20px;
+            border: 1px solid #333;
+            color: #555;
+            padding: 4px 14px;
+            border-radius: 16px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             transition: 0.2s;
-            margin-top: 16px;
+            margin-top: 12px;
         }
         .reset-btn:hover {
-            border-color: #888;
-            color: #aaa;
+            border-color: #666;
+            color: #888;
         }
         .footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 12px;
+            margin-top: 8px;
         }
         @media (max-width: 500px) {
-            .upgrade-grid { grid-template-columns: 1fr; }
-            .coins { font-size: 1.4rem; }
+            .bet-controls { flex-direction: column; }
+            .bet-presets { justify-content: center; }
+            .upgrade-grid { grid-template-columns: 1fr 1fr; }
+            .spin-btn { font-size: 1rem; padding: 10px 20px; }
         }
     </style>
 </head>
@@ -233,8 +313,24 @@
 <div class="game-container">
     <!-- Верхняя панель -->
     <div class="header">
-        <div class="coins">🪙 <span id="coinDisplay">100</span></div>
-        <div style="color:#888; font-size:0.9rem;">⚡ <span id="luckDisplay">1.0</span>x</div>
+        <div class="coins">🪙 <span id="coinDisplay">50</span></div>
+        <div style="color:#666; font-size:0.85rem;">🎯 <span id="winCountDisplay">0</span></div>
+    </div>
+
+    <!-- Блок ставки -->
+    <div class="bet-section">
+        <label class="bet-label">💰 СТАВКА (чем больше, тем меньше шанс)</label>
+        <div class="bet-controls">
+            <input type="number" class="bet-input" id="betInput" value="10" min="1" step="1">
+            <div class="bet-presets">
+                <button class="bet-preset-btn" data-amount="5">5</button>
+                <button class="bet-preset-btn active" data-amount="10">10</button>
+                <button class="bet-preset-btn" data-amount="25">25</button>
+                <button class="bet-preset-btn" data-amount="50">50</button>
+                <button class="bet-preset-btn" data-amount="100">100</button>
+            </div>
+        </div>
+        <div class="chance-display" id="chanceDisplay">Шанс выигрыша: <span>50%</span></div>
     </div>
 
     <!-- Колесо -->
@@ -247,47 +343,42 @@
     </div>
 
     <!-- Результат -->
-    <div class="result-popup" id="resultPopup">👉 Нажми на колесо или кнопку</div>
+    <div class="result-popup" id="resultPopup">👉 Сделай ставку и крути!</div>
 
     <!-- Апгрейды -->
     <div class="upgrades-section">
-        <div class="upgrades-title">⬆️ УЛУЧШЕНИЯ КОЛЕСА</div>
-        <div class="upgrade-grid" id="upgradeGrid">
-            <!-- Карточки апгрейдов генерируются JS -->
-        </div>
+        <div class="upgrades-title">⬆️ УЛУЧШЕНИЯ</div>
+        <div class="upgrade-grid" id="upgradeGrid"></div>
         <div class="footer">
-            <button class="reset-btn" id="resetBtn">⟳ сбросить</button>
-            <span style="color:#444; font-size:0.7rem;">v2.0 · удача</span>
+            <button class="reset-btn" id="resetBtn">⟳ сброс</button>
+            <span style="color:#333; font-size:0.65rem;">ставки · удача</span>
         </div>
     </div>
 </div>
 
 <script>
     (function() {
-        // ====== КОНФИГ ======
+        // ====== КОНФИГ СЕКТОРОВ ======
         const SEGMENTS = [
-            { label: '10', value: 10, color: '#ff6b6b' },
-            { label: '20', value: 20, color: '#feca57' },
-            { label: '5', value: 5, color: '#48dbfb' },
-            { label: '50', value: 50, color: '#ff9ff3' },
-            { label: 'x2', value: 'x2', color: '#54a0ff' },
             { label: '0', value: 0, color: '#5f27cd' },
-            { label: '30', value: 30, color: '#1dd1a1' },
-            { label: 'x3', value: 'x3', color: '#f368e0' },
+            { label: '5', value: 5, color: '#48dbfb' },
+            { label: '0', value: 0, color: '#5f27cd' },
+            { label: '10', value: 10, color: '#1dd1a1' },
+            { label: '0', value: 0, color: '#5f27cd' },
+            { label: '20', value: 20, color: '#feca57' },
+            { label: '0', value: 0, color: '#5f27cd' },
+            { label: '50', value: 50, color: '#ff6b6b' },
         ];
 
         // ====== СОСТОЯНИЕ ======
         const state = {
-            coins: 100,
-            spinCost: 10,
-            multiplier: 1.0,      // общий множитель наград
-            luckLevel: 1,         // уровень удачи (влияет на шансы)
-            segmentMultiplier: 1, // множитель от апгрейда сегментов
+            coins: 50,
+            winCount: 0,
+            bet: 10,
             upgrades: [
-                { id: 'luck', name: '🍀 Удача', desc: 'шанс на x2/x3 +5%', baseCost: 30, costMult: 1.6, level: 0, maxLevel: 10, effect: 'luck' },
-                { id: 'multi', name: '✨ Множитель', desc: 'все награды x1.2', baseCost: 50, costMult: 1.8, level: 0, maxLevel: 8, effect: 'multi' },
-                { id: 'cost', name: '💰 Скидка', desc: 'крутка -2 монеты', baseCost: 40, costMult: 1.7, level: 0, maxLevel: 6, effect: 'cost' },
-                { id: 'segment', name: '🎯 Сегменты', desc: '+2 к выигрышу', baseCost: 60, costMult: 2.0, level: 0, maxLevel: 5, effect: 'segment' },
+                { id: 'luck', name: '🍀 Удача', desc: '+5% к шансу', baseCost: 30, costMult: 1.6, level: 0, maxLevel: 10, effect: 'luck' },
+                { id: 'multi', name: '✨ Множитель', desc: 'выигрыш x1.2', baseCost: 40, costMult: 1.7, level: 0, maxLevel: 8, effect: 'multi' },
+                { id: 'refund', name: '🔄 Возврат', desc: 'при проигрыше возврат 10%', baseCost: 25, costMult: 1.5, level: 0, maxLevel: 8, effect: 'refund' },
             ]
         };
 
@@ -296,8 +387,10 @@
         const ctx = canvas.getContext('2d');
         const spinBtn = document.getElementById('spinBtn');
         const coinDisplay = document.getElementById('coinDisplay');
-        const luckDisplay = document.getElementById('luckDisplay');
+        const winCountDisplay = document.getElementById('winCountDisplay');
         const resultPopup = document.getElementById('resultPopup');
+        const betInput = document.getElementById('betInput');
+        const chanceDisplay = document.getElementById('chanceDisplay');
         const upgradeGrid = document.getElementById('upgradeGrid');
         const resetBtn = document.getElementById('resetBtn');
 
@@ -316,68 +409,64 @@
             return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMult, upgrade.level));
         }
 
+        // ====== РАСЧЁТ ШАНСА ======
+        function getChance(bet) {
+            // Чем больше ставка, тем меньше шанс
+            // База: 70% при ставке 1, падает до ~5% при ставке 500
+            const luckBonus = state.upgrades.find(u => u.id === 'luck').level * 0.05;
+            const baseChance = Math.max(0.05, 0.7 / (1 + bet * 0.015));
+            return Math.min(0.95, baseChance + luckBonus);
+        }
+
         // ====== РИСОВАНИЕ КОЛЕСА ======
         function drawWheel(angle) {
-            const w = canvas.width;
-            const h = canvas.height;
-            const centerX = w/2;
-            const centerY = h/2;
+            const w = canvas.width, h = canvas.height;
+            const cx = w/2, cy = h/2;
             const radius = Math.min(w, h) * 0.42;
+            const segAngle = (2 * Math.PI) / SEGMENTS.length;
 
             ctx.clearRect(0, 0, w, h);
             
-            const segmentAngle = (2 * Math.PI) / SEGMENTS.length;
-            
             SEGMENTS.forEach((seg, i) => {
-                const startAngle = angle + i * segmentAngle;
-                const endAngle = startAngle + segmentAngle;
-                
+                const start = angle + i * segAngle;
+                const end = start + segAngle;
                 ctx.beginPath();
-                ctx.moveTo(centerX, centerY);
-                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, radius, start, end);
                 ctx.closePath();
                 
-                // градиент
-                const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-                grad.addColorStop(0, lightenColor(seg.color, 30));
+                const grad = ctx.createRadialGradient(cx-10, cy-10, 0, cx, cy, radius);
+                grad.addColorStop(0, lightenColor(seg.color, 40));
                 grad.addColorStop(1, seg.color);
                 ctx.fillStyle = grad;
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.strokeStyle = 'rgba(255,255,255,0.08)';
                 ctx.lineWidth = 2;
                 ctx.stroke();
                 
-                // текст
                 ctx.save();
-                ctx.translate(centerX, centerY);
-                ctx.rotate(startAngle + segmentAngle/2);
+                ctx.translate(cx, cy);
+                ctx.rotate(start + segAngle/2);
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillStyle = '#fff';
-                ctx.font = 'bold 22px "Segoe UI", sans-serif';
-                ctx.shadowColor = 'rgba(0,0,0,0.8)';
+                ctx.font = 'bold 20px "Segoe UI", sans-serif';
+                ctx.shadowColor = 'rgba(0,0,0,0.9)';
                 ctx.shadowBlur = 10;
                 ctx.fillText(seg.label, radius * 0.65, 0);
                 ctx.restore();
             });
 
-            // центральный круг
-            const gradient = ctx.createRadialGradient(centerX-10, centerY-10, 0, centerX, centerY, 35);
-            gradient.addColorStop(0, '#4a4a8a');
-            gradient.addColorStop(1, '#1a1a3e');
+            // Центр
+            const grad2 = ctx.createRadialGradient(cx-8, cy-8, 0, cx, cy, 28);
+            grad2.addColorStop(0, '#4a2a7a');
+            grad2.addColorStop(1, '#0a0a1a');
             ctx.beginPath();
-            ctx.arc(centerX, centerY, 30, 0, 2 * Math.PI);
-            ctx.fillStyle = gradient;
+            ctx.arc(cx, cy, 28, 0, 2*Math.PI);
+            ctx.fillStyle = grad2;
             ctx.fill();
-            ctx.strokeStyle = 'rgba(255,215,0,0.3)';
+            ctx.strokeStyle = 'rgba(255,215,0,0.2)';
             ctx.lineWidth = 3;
-            ctx.stroke();
-
-            // внешнее свечение
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius+6, 0, 2*Math.PI);
-            ctx.strokeStyle = 'rgba(255,215,0,0.08)';
-            ctx.lineWidth = 8;
             ctx.stroke();
         }
 
@@ -391,90 +480,75 @@
         }
 
         // ====== ЛОГИКА КРУТКИ ======
-        function getSpinResult() {
-            // базовая удача: случайный сектор
-            const rawIndex = Math.floor(Math.random() * SEGMENTS.length);
-            let seg = SEGMENTS[rawIndex];
-            
-            // влияние апгрейда удачи: дополнительный шанс на x2/x3
-            const luckBonus = state.upgrades.find(u => u.id === 'luck').level * 0.05; // +5% за уровень
-            const extraChance = Math.random() < luckBonus;
-            
-            let finalValue = seg.value;
-            let label = seg.label;
-            
-            if (extraChance && (seg.value === 'x2' || seg.value === 'x3')) {
-                // уже выпал множитель, но удача может удвоить
-                if (seg.value === 'x2') finalValue = 'x4';
-                else if (seg.value === 'x3') finalValue = 'x6';
-                label = finalValue;
-            } else if (extraChance && typeof seg.value === 'number') {
-                // если выпали монеты, удача добавляет бонус
-                finalValue = Math.floor(seg.value * 1.5);
-                label = finalValue.toString();
-            }
-            
-            // применение общего множителя (если число)
-            let reward = 0;
-            let isMultiplier = false;
-            let multiplierValue = 1;
-            
-            if (typeof finalValue === 'string' && finalValue.startsWith('x')) {
-                isMultiplier = true;
-                multiplierValue = parseFloat(finalValue.substring(1));
-                // множитель применяется к текущим монетам? нет, к следующему выигрышу
-                // но мы можем дать бонус
-                reward = Math.floor(state.coins * 0.1 * multiplierValue);
-            } else if (typeof finalValue === 'number') {
-                reward = Math.floor(finalValue * state.multiplier) + state.upgrades.find(u => u.id === 'segment').level * 2;
-            }
-            
-            return { 
-                reward, 
-                isMultiplier, 
-                multiplierValue,
-                label: typeof finalValue === 'string' ? finalValue : finalValue.toString(),
-                rawIndex,
-                segment: seg
-            };
-        }
-
         function spinWheel() {
             if (isSpinning) return;
-            if (state.coins < state.spinCost) {
+            
+            const bet = parseInt(betInput.value) || 10;
+            if (bet < 1) {
+                resultPopup.textContent = '❌ Ставка должна быть ≥ 1';
+                return;
+            }
+            if (bet > state.coins) {
                 resultPopup.textContent = '❌ Не хватает монет!';
-                resultPopup.style.color = '#ff6b6b';
                 return;
             }
 
-            state.coins -= state.spinCost;
-            isSpinning = true;
-            spinBtn.disabled = true;
-            resultPopup.textContent = '🎡 Крутим...';
+            const chance = getChance(bet);
+            const isWin = Math.random() < chance;
+            
+            // Списываем ставку
+            state.coins -= bet;
 
-            // определяем результат
-            const result = getSpinResult();
+            // Определяем сектор
+            let winIndex;
+            if (isWin) {
+                // Выигрыш: выбираем сектор с наградой > 0
+                const positiveSegs = SEGMENTS.map((s, i) => s.value > 0 ? i : -1).filter(i => i >= 0);
+                winIndex = positiveSegs[Math.floor(Math.random() * positiveSegs.length)];
+            } else {
+                // Проигрыш: сектор с 0
+                const zeroSegs = SEGMENTS.map((s, i) => s.value === 0 ? i : -1).filter(i => i >= 0);
+                winIndex = zeroSegs[Math.floor(Math.random() * zeroSegs.length)];
+            }
+
+            // Расчёт выигрыша
+            let winAmount = 0;
+            const multiBonus = state.upgrades.find(u => u.id === 'multi').level * 0.2 + 1;
             
-            // рассчитываем финальный угол (чтобы указатель попал на нужный сектор)
-            const segmentAngle = (2 * Math.PI) / SEGMENTS.length;
-            // целевой угол: противоположный сектор (указатель сверху)
-            const targetSegIndex = result.rawIndex;
-            // указатель сверху = -PI/2, поэтому сектор должен быть внизу
-            const targetAngle = -Math.PI/2 - (targetSegIndex * segmentAngle) - segmentAngle/2;
-            
-            // добавляем несколько оборотов для красоты
-            const extraSpins = 5 + Math.floor(Math.random() * 3);
+            if (isWin) {
+                const baseWin = SEGMENTS[winIndex].value;
+                winAmount = Math.floor(baseWin * bet * multiBonus);
+                state.coins += winAmount;
+                state.winCount += 1;
+            } else {
+                // Возврат при проигрыше
+                const refundLevel = state.upgrades.find(u => u.id === 'refund').level;
+                if (refundLevel > 0) {
+                    const refundPercent = refundLevel * 0.1;
+                    const refund = Math.floor(bet * refundPercent);
+                    if (refund > 0) {
+                        state.coins += refund;
+                        winAmount = -refund; // отрицательное для отображения возврата
+                    }
+                }
+            }
+
+            // Анимация
+            const segAngle = (2 * Math.PI) / SEGMENTS.length;
+            const targetAngle = -Math.PI/2 - (winIndex * segAngle) - segAngle/2;
+            const extraSpins = 5 + Math.floor(Math.random() * 4);
             const finalAngle = targetAngle + extraSpins * 2 * Math.PI;
             
-            // анимация
-            const startAngle = currentAngle;
-            const duration = 3000 + Math.random() * 1000;
-            const startTime = performance.now();
+            isSpinning = true;
+            spinBtn.disabled = true;
             
+            const startAngle = currentAngle;
+            const duration = 3000 + Math.random() * 1200;
+            const startTime = performance.now();
+
             function animateSpin(time) {
                 const elapsed = time - startTime;
                 const progress = Math.min(elapsed / duration, 1);
-                // easeOutCubic
                 const eased = 1 - Math.pow(1 - progress, 3);
                 const current = startAngle + (finalAngle - startAngle) * eased;
                 currentAngle = current;
@@ -485,38 +559,33 @@
                 } else {
                     currentAngle = finalAngle;
                     drawWheel(currentAngle);
-                    // показываем результат
-                    applyResult(result);
+                    
+                    // Показываем результат
+                    let msg = '';
+                    let color = '#ffd700';
+                    if (isWin) {
+                        msg = `🎉 ВЫИГРЫШ! +${winAmount} 🪙`;
+                        color = '#ffd700';
+                    } else {
+                        if (winAmount < 0) {
+                            msg = `😅 Проигрыш... Возврат ${Math.abs(winAmount)} 🪙`;
+                            color = '#48dbfb';
+                        } else {
+                            msg = `😅 Проигрыш... -${bet} 🪙`;
+                            color = '#ff6b6b';
+                        }
+                    }
+                    resultPopup.textContent = msg;
+                    resultPopup.style.color = color;
+                    
+                    updateUI();
+                    renderUpgrades();
                     isSpinning = false;
                     spinBtn.disabled = false;
                 }
             }
             
             animationId = requestAnimationFrame(animateSpin);
-        }
-
-        function applyResult(result) {
-            let message = '';
-            let color = '#ffd700';
-            
-            if (result.isMultiplier) {
-                // множитель: даём бонусные монеты
-                const bonus = Math.floor(state.coins * 0.15 * result.multiplierValue);
-                state.coins += bonus;
-                message = `🎯 x${result.multiplierValue}! +${bonus} монет!`;
-                color = '#ff6bff';
-            } else {
-                state.coins += result.reward;
-                message = `💰 +${result.reward} монет!`;
-                if (result.reward >= 50) color = '#ffd700';
-                else if (result.reward >= 20) color = '#feca57';
-                else color = '#48dbfb';
-            }
-            
-            resultPopup.textContent = message;
-            resultPopup.style.color = color;
-            updateUI();
-            renderUpgrades();
         }
 
         // ====== АПГРЕЙДЫ ======
@@ -536,35 +605,25 @@
             state.coins -= cost;
             upg.level += 1;
             
-            // применяем эффект
-            switch(upg.effect) {
-                case 'luck':
-                    // ничего, используется в getSpinResult
-                    break;
-                case 'multi':
-                    state.multiplier = 1 + upg.level * 0.2;
-                    break;
-                case 'cost':
-                    state.spinCost = Math.max(2, 10 - upg.level * 2);
-                    break;
-                case 'segment':
-                    // используется в getSpinResult
-                    break;
-            }
-            
             resultPopup.textContent = `⬆️ ${upg.name} улучшен до ${upg.level} уровня!`;
             resultPopup.style.color = '#48dbfb';
             updateUI();
             renderUpgrades();
+            updateChanceDisplay();
         }
 
-        // ====== UI ======
+        // ====== ОБНОВЛЕНИЕ UI ======
         function updateUI() {
             coinDisplay.textContent = formatNum(state.coins);
-            luckDisplay.textContent = (1 + state.upgrades.find(u => u.id === 'luck').level * 0.05).toFixed(2);
-            spinBtn.textContent = `🎡 КРУТИТЬ (${state.spinCost} 🪙)`;
-            // обновим доступность кнопки
-            spinBtn.disabled = isSpinning || state.coins < state.spinCost;
+            winCountDisplay.textContent = state.winCount;
+            spinBtn.disabled = isSpinning || state.coins < (parseInt(betInput.value) || 1);
+            updateChanceDisplay();
+        }
+
+        function updateChanceDisplay() {
+            const bet = parseInt(betInput.value) || 10;
+            const chance = getChance(bet);
+            chanceDisplay.innerHTML = `Шанс выигрыша: <span>${(chance * 100).toFixed(1)}%</span>`;
         }
 
         function renderUpgrades() {
@@ -593,15 +652,13 @@
             upgradeGrid.innerHTML = html;
         }
 
-        // делаем buyUpgrade глобальной для onclick
         window.buyUpgrade = buyUpgrade;
 
         // ====== СБРОС ======
         function resetGame() {
             if (!confirm('Сбросить весь прогресс?')) return;
-            state.coins = 100;
-            state.spinCost = 10;
-            state.multiplier = 1.0;
+            state.coins = 50;
+            state.winCount = 0;
             state.upgrades.forEach(u => u.level = 0);
             currentAngle = 0;
             drawWheel(0);
@@ -616,39 +673,26 @@
             try {
                 const data = {
                     coins: state.coins,
-                    spinCost: state.spinCost,
-                    multiplier: state.multiplier,
+                    winCount: state.winCount,
                     upgrades: state.upgrades.map(u => ({ id: u.id, level: u.level }))
                 };
-                localStorage.setItem('wheel_upgrader_save', JSON.stringify(data));
+                localStorage.setItem('casino_upgrader_save', JSON.stringify(data));
             } catch(e) {}
         }
 
         function loadGame() {
             try {
-                const raw = localStorage.getItem('wheel_upgrader_save');
+                const raw = localStorage.getItem('casino_upgrader_save');
                 if (!raw) return;
                 const data = JSON.parse(raw);
-                state.coins = data.coins || 100;
-                state.spinCost = data.spinCost || 10;
-                state.multiplier = data.multiplier || 1.0;
+                state.coins = data.coins || 50;
+                state.winCount = data.winCount || 0;
                 if (data.upgrades) {
                     data.upgrades.forEach(saved => {
                         const found = state.upgrades.find(u => u.id === saved.id);
                         if (found) found.level = saved.level || 0;
                     });
                 }
-                // переприменить эффекты
-                state.upgrades.forEach(upg => {
-                    switch(upg.effect) {
-                        case 'multi':
-                            state.multiplier = 1 + upg.level * 0.2;
-                            break;
-                        case 'cost':
-                            state.spinCost = Math.max(2, 10 - upg.level * 2);
-                            break;
-                    }
-                });
             } catch(e) {}
         }
 
@@ -657,17 +701,36 @@
         drawWheel(0);
         updateUI();
         renderUpgrades();
+        updateChanceDisplay();
 
-        // события
+        // События
         spinBtn.addEventListener('click', spinWheel);
         canvas.addEventListener('click', spinWheel);
         resetBtn.addEventListener('click', resetGame);
 
-        // автосохранение
+        // Пресеты ставок
+        document.querySelectorAll('.bet-preset-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.bet-preset-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                betInput.value = this.dataset.amount;
+                updateChanceDisplay();
+                updateUI();
+            });
+        });
+
+        betInput.addEventListener('input', function() {
+            document.querySelectorAll('.bet-preset-btn').forEach(b => b.classList.remove('active'));
+            const val = parseInt(this.value) || 1;
+            updateChanceDisplay();
+            updateUI();
+        });
+
+        // Автосохранение
         setInterval(saveGame, 5000);
         window.addEventListener('beforeunload', saveGame);
 
-        console.log('🎡 Колесо Апгрейдер запущено!');
+        console.log('🎰 Казино-Апгрейдер запущено!');
     })();
 </script>
 </body>
